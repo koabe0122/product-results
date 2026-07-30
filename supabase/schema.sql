@@ -75,6 +75,14 @@ create policy "allow_read_priority_products" on priority_products for select usi
 create policy "allow_read_targets"           on targets           for select using (true);
 create policy "allow_read_orders"            on orders            for select using (true);
 
+-- anon ロールへのアクセス権限付与
+grant usage on schema public to anon;
+grant select on genres, departments, priority_products, targets, orders to anon;
+
+-- service_role（CSV取込スクリプト）への書き込み権限
+grant all on genres, departments, priority_products, targets, orders to service_role;
+grant usage, select on all sequences in schema public to service_role;
+
 -- ============================================================
 -- サンプルマスタデータ（初期投入用）
 -- ============================================================
