@@ -28,20 +28,28 @@ export function OrderDetailDrawer({
 }: OrderDetailDrawerProps) {
   const [orders, setOrders] = useState<OrderDetail[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
     if (!open) return;
     setLoading(true);
-    const params = new URLSearchParams({ period, fiscalYear: String(fiscalYear) });
-    if (janCode) params.set("janCode", janCode);
-    if (department && department !== "全社") params.set("department", department);
+    setFetchError(null);
+    try {
+      const params = new URLSearchParams({ period, fiscalYear: String(fiscalYear) });
+      if (janCode) params.set("janCode", janCode);
+      if (department && department !== "全社") params.set("department", department);
 
-    const res = await fetch(`/api/orders?${params}`);
-    const json = await res.json();
-    let data: OrderDetail[] = json.orders ?? [];
-    if (person) data = data.filter((o) => o.person === person);
-    setOrders(data);
-    setLoading(false);
+      const res = await fetch(`/api/orders?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      let data: OrderDetail[] = json.orders ?? [];
+      if (person) data = data.filter((o) => o.person === person);
+      setOrders(data);
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : "データ取得に失敗しました");
+    } finally {
+      setLoading(false);
+    }
   }, [open, janCode, person, department, period, fiscalYear]);
 
   useEffect(() => {
@@ -67,7 +75,12 @@ export function OrderDetailDrawer({
         onClick={onClose}
       />
       {/* ドロワー */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-white z-50 shadow-2xl flex flex-col">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="drawer-title"
+        className="fixed right-0 top-0 h-full w-full max-w-lg bg-white z-50 shadow-2xl flex flex-col"
+      >
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <div>
@@ -75,7 +88,7 @@ export function OrderDetailDrawer({
               <ChevronRight size={12} />
               <span>詳細</span>
             </div>
-            <h2 className="text-base font-bold text-gray-800 line-clamp-1">{title}</h2>
+            <h2 id="drawer-title" className="text-base font-bold text-gray-800 line-clamp-1">{title}</h2>
           </div>
           <button
             onClick={onClose}
@@ -97,6 +110,16 @@ export function OrderDetailDrawer({
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
               読み込み中...
+            </div>
+          ) : fetchError ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <p className="text-red-500 text-sm">{fetchError}</p>
+              <button
+                onClick={fetchOrders}
+                className="text-blue-600 underline text-xs"
+              >
+                再試行
+              </button>
             </div>
           ) : orders.length === 0 ? (
             <div className="flex items-center justify-center py-16 text-gray-400 text-sm">

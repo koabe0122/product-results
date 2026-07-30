@@ -23,6 +23,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: productsError.message }, { status: 500 });
   }
 
+  // 部門マスタ取得（目標値の名前→ID解決に使用）
+  const { data: departments, error: depsError } = await supabase
+    .from("departments")
+    .select("id, name")
+    .order("sort_order");
+
+  if (depsError) {
+    return NextResponse.json({ error: depsError.message }, { status: 500 });
+  }
+
   // 目標値取得
   const { data: targets, error: targetsError } = await supabase
     .from("targets")
@@ -56,5 +66,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: ordersError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ products, targets, orders });
+  return NextResponse.json({ products, departments, targets, orders });
 }
