@@ -96,9 +96,39 @@ function parseCSV(filePath) {
   return records;
 }
 
+// ---- ネットワーク待機 ---------------------------------------------------
+/**
+ * ネットワーク共有フォルダが利用可能になるまで待機する。
+ * PC起動直後はネットワークが安定しておらず共有フォルダにアクセスできない場合があるため。
+ * @param {string} folderPath 監視するフォルダパス
+ * @param {number} maxRetries 最大リトライ回数（デフォルト6回）
+ * @param {number} intervalSec リトライ間隔（秒、デフォルト10秒）
+ * @returns {Promise<boolean>} アクセス可能になれば true、タイムアウトで false
+ */
+async function waitForFolder(folderPath, maxRetries = 6, intervalSec = 10) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      fs.accessSync(folderPath);
+      log(`[INFO] フォルダへのアクセス確認OK: ${folderPath}`);
+      return true;
+    } catch {
+      log(`[INFO] フォルダ待機中... (${i + 1}/${maxRetries}) ${folderPath}`);
+      await new Promise((r) => setTimeout(r, intervalSec * 1000));
+    }
+  }
+  return false;
+}
+
 // ---- メイン処理 ---------------------------------------------------------
 async function main() {
   log("=== CSV取込開始 ===");
+
+  // ネットワーク共有フォルダが利用可能になるまで待機（最大60秒）
+  const folderReady = await waitForFolder(CSV_FOLDER);
+  if (!folderReady) {
+    log(`[ERROR] フォルダにアクセスできませんでした（タイムアウト）: ${CSV_FOLDER}`);
+    process.exit(1);
+  }
 
   // CSVフォルダ内の全CSVファイルを処理
   let files;

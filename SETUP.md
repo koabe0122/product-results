@@ -60,7 +60,10 @@ npm run dev
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. Deploy ボタンをクリック
 
-## 7. Windows タスクスケジューラ登録（毎日CSV取込）
+## 7. Windows タスクスケジューラ登録（PC起動時にCSV取込）
+
+スクリプトはPC起動・ログイン時に自動実行されます。
+ネットワーク共有が利用可能になるまで最大60秒間リトライします。
 
 1. Node.js がインストールされていることを確認: `node -v`
 2. `.env.local` に `SUPABASE_SERVICE_KEY` と `CSV_FOLDER` を設定
@@ -72,20 +75,37 @@ $action = New-ScheduledTaskAction `
   -Argument "scripts\import-orders.mjs" `
   -WorkingDirectory "C:\Users\koabe.MECOM1\src\product-results"
 
-$trigger = New-ScheduledTaskTrigger -Daily -At "07:00AM"
+# ログイン時トリガー（30秒遅延でネットワーク安定後に実行）
+$trigger = New-ScheduledTaskTrigger -AtLogOn
+$trigger.Delay = "PT30S"
 
-$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
+$settings = New-ScheduledTaskSettingsSet `
+  -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
+  -RunOnlyIfNetworkAvailable $true
 
 Register-ScheduledTask `
   -TaskName "重点商材CSV取込" `
   -Action $action `
   -Trigger $trigger `
   -Settings $settings `
-  -RunLevel Highest
+  -RunLevel Highest `
+  -Force
 ```
+
+- `AtLogOn`: PC起動後にユーザーがログインしたタイミングで実行
+- `Delay = PT30S`: ログイン後30秒待ってから実行（ネットワーク安定のため）
+- `RunOnlyIfNetworkAvailable`: ネットワーク未接続時はスキップ
 
 4. タスクスケジューラで「重点商材CSV取込」が登録されたことを確認
 5. 「今すぐ実行」でテスト、`scripts/logs/` にログが出力されることを確認
+
+### CSVフォルダパスを変更したい場合
+
+`.env.local` の `CSV_FOLDER` を編集するだけで変更できます:
+
+```
+CSV_FOLDER=\\192.168.0.2\工具用pcデータ交換\koabe
+```
 
 ## ログ確認
 
