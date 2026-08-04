@@ -9,19 +9,19 @@ export async function GET(request: NextRequest) {
   const fiscalYear = parseInt(
     searchParams.get("fiscalYear") ?? String(currentFiscalYear())
   );
-  const janCode = searchParams.get("janCode");
+  const categoryKey = searchParams.get("categoryKey");
   const department = searchParams.get("department") ?? null;
 
   const { from, to } = getDateRangeForPeriod(period, fiscalYear);
 
   let query = supabase
     .from("orders")
-    .select("slip_date, jan_code, product_name, customer_name, department, person")
+    .select("slip_date, jan_code, product_name, customer_name, department, person, category_key")
     .gte("slip_date", from)
     .lte("slip_date", to)
     .order("slip_date", { ascending: false });
 
-  if (janCode) query = query.eq("jan_code", janCode);
+  if (categoryKey) query = query.eq("category_key", categoryKey);
   if (department && department !== "全社") query = query.eq("department", department);
 
   const { data, error } = await query;

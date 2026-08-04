@@ -30,7 +30,7 @@ interface SummaryResponse {
   targets: Target[];
   orders: Pick<
     Order,
-    "jan_code" | "department" | "person" | "customer_name" | "product_name" | "slip_date"
+    "category_key" | "department" | "person" | "customer_name" | "product_name" | "slip_date"
   >[];
 }
 
@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const [drawer, setDrawer] = useState<{
     open: boolean;
     title: string;
-    janCode?: string;
+    categoryKey?: string;
     person?: string;
   }>({ open: false, title: "" });
 
@@ -73,15 +73,15 @@ export default function DashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  // 部門リスト
+  // 部門リスト（受注データから取得した部門一覧）
   const departments = useMemo(
     () => [
       COMPANY_DEPT,
-      ...Array.from(
-        new Set((data?.orders ?? []).map((o) => o.department))
-      ).sort(),
+      ...(data?.departments ?? [])
+        .filter((d) => d.name !== COMPANY_DEPT)
+        .map((d) => d.name),
     ],
-    [data?.orders]
+    [data?.departments]
   );
 
   // 選択中の部門ID（目標値の絞り込みに使用）
@@ -90,12 +90,12 @@ export default function DashboardPage() {
     return data?.departments.find((d) => d.name === department)?.id ?? -1;
   }, [department, data?.departments]);
 
-  // 商材サマリー計算
+  // 商材サマリー計算（category_key でマッチング）
   const productSummaries: ProductSummary[] = useMemo(
     () =>
       (data?.products ?? []).map((product) => {
         const actual = (data?.orders ?? []).filter(
-          (o) => o.jan_code === product.jan_code
+          (o) => o.category_key === product.product_name
         ).length;
 
         const target =
@@ -135,12 +135,12 @@ export default function DashboardPage() {
       }
       const ps = personMap.get(key)!;
       ps.totalCount++;
-      const existing = ps.byProduct.find((b) => b.janCode === o.jan_code);
+      const existing = ps.byProduct.find((b) => b.categoryKey === o.category_key);
       if (existing) {
         existing.count++;
       } else {
         ps.byProduct.push({
-          janCode: o.jan_code,
+          categoryKey: o.category_key,
           productName: o.product_name,
           count: 1,
         });
@@ -241,11 +241,11 @@ export default function DashboardPage() {
                         <ProductCard
                           key={s.product.id}
                           summary={s}
-                          onCountClick={(janCode, productName) =>
+                          onCountClick={(categoryKey, productName) =>
                             setDrawer({
                               open: true,
                               title: productName,
-                              janCode,
+                              categoryKey,
                             })
                           }
                         />
@@ -293,7 +293,7 @@ export default function DashboardPage() {
       <OrderDetailDrawer
         open={drawer.open}
         title={drawer.title}
-        janCode={drawer.janCode}
+        categoryKey={drawer.categoryKey}
         person={drawer.person}
         department={department}
         period={period}

@@ -6,10 +6,9 @@
  * 実行例: node scripts/import-orders.mjs
  *
  * 必要環境変数 (.env.local または システム環境変数):
- *   SUPABASE_URL       - Supabase プロジェクト URL
+ *   SUPABASE_URL         - Supabase プロジェクト URL
  *   SUPABASE_SERVICE_KEY - Service Role Key (書き込み権限)
- *   CSV_FOLDER         - CSVが置かれるフォルダパス
- *   CSV_GENRE_MAP      - JAN→ジャンル対応JSON (省略可)
+ *   CSV_FOLDER           - CSVが置かれるフォルダパス
  */
 
 import fs from "fs";
@@ -96,14 +95,48 @@ function parseCSV(filePath) {
   return records;
 }
 
+// ---- カテゴリマップ構築 --------------------------------------------------
+/**
+ * priority_products から match_patterns を取得し、
+ * 商品名 → 施策名（product_name）のマッピングマップを構築する。
+ * @returns {{ product_name: string; match_patterns: string[] }[]}
+ */
+async function buildCategoryMap() {
+  const { data, error } = await supabase
+    .from("priority_products")
+    .select("product_name, match_patterns")
+    .order("id");
+
+  if (error) {
+    log(`[WARN] カテゴリマップ取得失敗: ${error.message} - category_key は空になります`);
+    return [];
+  }
+  return data ?? [];
+}
+
+/**
+ * 商品名に対してパターンマッチングを行い、施策名（category_key）を返す。
+ * 一致した最初の施策名を返す。どれにも一致しない場合は空文字を返す。
+ * @param {string} productName
+ * @param {{ product_name: string; match_patterns: string[] }[]} categoryMap
+ * @returns {string}
+ */
+function matchCategory(productName, categoryMap) {
+  const upper = productName.toUpperCase();
+  for (const cat of categoryMap) {
+    for (const pattern of (cat.match_patterns ?? [])) {
+      if (upper.includes(pattern.toUpperCase())) {
+        return cat.product_name;
+      }
+    }
+  }
+  return "";
+}
+
 // ---- ネットワーク待機 ---------------------------------------------------
 /**
  * ネットワーク共有フォルダが利用可能になるまで待機する。
  * PC起動直後はネットワークが安定しておらず共有フォルダにアクセスできない場合があるため。
- * @param {string} folderPath 監視するフォルダパス
- * @param {number} maxRetries 最大リトライ回数（デフォルト6回）
- * @param {number} intervalSec リトライ間隔（秒、デフォルト10秒）
- * @returns {Promise<boolean>} アクセス可能になれば true、タイムアウトで false
  */
 async function waitForFolder(folderPath, maxRetries = 6, intervalSec = 10) {
   for (let i = 0; i < maxRetries; i++) {
@@ -122,6 +155,10 @@ async function waitForFolder(folderPath, maxRetries = 6, intervalSec = 10) {
 // ---- メイン処理 ---------------------------------------------------------
 async function main() {
   log("=== CSV取込開始 ===");
+
+  // カテゴリマップを先に取得
+  const categoryMap = await buildCategoryMap();
+  log(`[INFO] カテゴリマップ: ${categoryMap.length}件の施策を読み込みました`);
 
   // ネットワーク共有フォルダが利用可能になるまで待機（最大60秒）
   const folderReady = await waitForFolder(CSV_FOLDER);
@@ -165,7 +202,7 @@ async function main() {
       continue;
     }
 
-    // 2行目以降がサンプルの場合はスキップ指示があるため、ヘッダ行確認
+    // 伝票日付が日付形式の行のみ処理（サンプル行などを除外）
     const validRecords = records.filter((r) => {
       const dateStr = r["伝票日付"] ?? "";
       return /^\d{4}\/\d{2}\/\d{2}$/.test(dateStr);
@@ -176,16 +213,24 @@ async function main() {
       continue;
     }
 
-    // Supabase upsert
-    const rows = validRecords.map((r) => ({
-      slip_date: r["伝票日付"].replace(/\//g, "-"),
-      jan_code: String(r["商品コード"] ?? "").trim(),
-      product_name: (r["商品名"] ?? "").trim(),
-      customer_name: (r["受注先 名称1"] ?? "").trim(),
-      department: (r["部署"] ?? "").trim(),
-      person: (r["担当者名"] ?? "").trim(),
-      genre: (r["ジャンル"] ?? "").trim(),
-    }));
+    // 各レコードにカテゴリキーを付与
+    const rows = validRecords.map((r) => {
+      const productName = (r["商品名"] ?? "").trim();
+      const categoryKey = matchCategory(productName, categoryMap);
+      return {
+        slip_date: r["伝票日付"].replace(/\//g, "-"),
+        jan_code: String(r["商品コード"] ?? "").trim(),
+        product_name: productName,
+        customer_name: (r["受注先 名称1"] ?? "").trim(),
+        department: (r["部署"] ?? "").trim(),
+        person: (r["担当者名"] ?? "").trim(),
+        genre: (r["ジャンル"] ?? "").trim(),
+        category_key: categoryKey,
+      };
+    });
+
+    const matchedCount = rows.filter((r) => r.category_key !== "").length;
+    log(`[INFO] ${file}: ${validRecords.length}件中 ${matchedCount}件が重点商材にマッチ`);
 
     const { data, error } = await supabase
       .from("orders")

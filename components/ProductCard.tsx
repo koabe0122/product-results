@@ -5,7 +5,7 @@ import type { ProductSummary } from "@/lib/types";
 
 interface ProductCardProps {
   summary: ProductSummary;
-  onCountClick?: (janCode: string, productName: string) => void;
+  onCountClick?: (categoryKey: string, productName: string) => void;
 }
 
 export function ProductCard({ summary, onCountClick }: ProductCardProps) {
@@ -31,7 +31,7 @@ export function ProductCard({ summary, onCountClick }: ProductCardProps) {
       <div className="flex items-end justify-between">
         <div>
           <button
-            onClick={() => onCountClick?.(product.jan_code, product.product_name)}
+            onClick={() => onCountClick?.(product.product_name, product.product_name)}
             className={cn(
               "text-3xl font-bold tabular-nums cursor-pointer hover:underline",
               achievementColor(rate)

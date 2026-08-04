@@ -6,10 +6,11 @@ export interface Genre {
 
 export interface PriorityProduct {
   id: number;
-  jan_code: string;
+  jan_code: string | null;
   product_name: string;
   genre_id: number;
   fiscal_year: number;
+  match_patterns: string[];
   genre?: Genre;
 }
 
@@ -38,6 +39,7 @@ export interface Order {
   department: string;
   person: string;
   genre: string;
+  category_key: string;
   imported_at: string;
 }
 
@@ -59,7 +61,7 @@ export interface PersonSummary {
   person: string;
   department: string;
   totalCount: number;
-  byProduct: { janCode: string; productName: string; count: number }[];
+  byProduct: { categoryKey: string; productName: string; count: number }[];
 }
 
 export interface OrderDetail {
@@ -69,4 +71,5 @@ export interface OrderDetail {
   customer_name: string;
   product_name: string;
   jan_code: string;
+  category_key: string;
 }

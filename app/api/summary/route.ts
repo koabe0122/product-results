@@ -44,20 +44,22 @@ export async function GET(request: NextRequest) {
   }
 
   // 受注実績取得（期間・部門フィルタ）
+  // category_key でパターンマッチ済みの受注のみを対象にする
   let query = supabase
     .from("orders")
-    .select("jan_code, department, person, customer_name, product_name, slip_date")
+    .select("category_key, department, person, customer_name, product_name, slip_date")
     .gte("slip_date", from)
-    .lte("slip_date", to);
+    .lte("slip_date", to)
+    .neq("category_key", ""); // 分類済みのみ
 
   if (department && department !== "全社") {
     query = query.eq("department", department);
   }
 
-  // 重点商材のJANコードのみに絞る
-  const janCodes = (products ?? []).map((p) => p.jan_code);
-  if (janCodes.length > 0) {
-    query = query.in("jan_code", janCodes);
+  // 重点商材の product_name のみに絞る（category_key は product_name に一致）
+  const categoryKeys = (products ?? []).map((p) => p.product_name);
+  if (categoryKeys.length > 0) {
+    query = query.in("category_key", categoryKeys);
   }
 
   const { data: orders, error: ordersError } = await query;

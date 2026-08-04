@@ -8,7 +8,7 @@ import type { Period } from "@/lib/utils";
 interface OrderDetailDrawerProps {
   open: boolean;
   title: string;
-  janCode?: string;
+  categoryKey?: string;
   person?: string;
   department?: string;
   period: Period;
@@ -19,7 +19,7 @@ interface OrderDetailDrawerProps {
 export function OrderDetailDrawer({
   open,
   title,
-  janCode,
+  categoryKey,
   person,
   department,
   period,
@@ -36,7 +36,7 @@ export function OrderDetailDrawer({
     setFetchError(null);
     try {
       const params = new URLSearchParams({ period, fiscalYear: String(fiscalYear) });
-      if (janCode) params.set("janCode", janCode);
+      if (categoryKey) params.set("categoryKey", categoryKey);
       if (department && department !== "全社") params.set("department", department);
 
       const res = await fetch(`/api/orders?${params}`);
@@ -50,7 +50,7 @@ export function OrderDetailDrawer({
     } finally {
       setLoading(false);
     }
-  }, [open, janCode, person, department, period, fiscalYear]);
+  }, [open, categoryKey, person, department, period, fiscalYear]);
 
   useEffect(() => {
     fetchOrders();
