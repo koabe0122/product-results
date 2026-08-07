@@ -1,5 +1,5 @@
 -- ============================================================
--- Migration 001: カテゴリキー対応
+-- Migration 001: カテゴリキー対応（再実行しても安全）
 -- Supabase SQL Editor で実行してください
 -- ============================================================
 
@@ -11,8 +11,19 @@ ALTER TABLE priority_products ALTER COLUMN jan_code DROP NOT NULL;
 
 -- 3. ユニーク制約を jan_code+fiscal_year → product_name+fiscal_year に変更
 ALTER TABLE priority_products DROP CONSTRAINT IF EXISTS priority_products_jan_code_fiscal_year_key;
-ALTER TABLE priority_products ADD CONSTRAINT priority_products_product_name_fiscal_year_key
-  UNIQUE (product_name, fiscal_year);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'priority_products_product_name_fiscal_year_key'
+  ) THEN
+    ALTER TABLE priority_products
+      ADD CONSTRAINT priority_products_product_name_fiscal_year_key
+      UNIQUE (product_name, fiscal_year);
+  END IF;
+END $$;
 
 -- 4. orders に category_key カラムを追加
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS category_key TEXT NOT NULL DEFAULT '';
