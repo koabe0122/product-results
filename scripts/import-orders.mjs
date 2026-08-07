@@ -153,9 +153,17 @@ async function buildCategoryMap() {
   return data ?? [];
 }
 
+/** 複写機・本体の「台数」に含めない行（ライセンス等） */
+function isNonCountableUnit(productName) {
+  return /ﾗｲｾﾝｽ|ライセンス|LICENSE|License|保守|メンテ|トナー|toner|ドラム/i.test(
+    productName
+  );
+}
+
 /**
  * 最長パターン一致で施策名を返す。
  * 同長の場合は固有ソフト（ESET等）を優先。
+ * Canon MFP / プロダクト機は「台数」対象外（ライセンス等）を除外。
  */
 function matchCategory(productName, categoryMap) {
   const upper = productName.toUpperCase();
@@ -196,7 +204,17 @@ function matchCategory(productName, categoryMap) {
     return (PRIORITY[b.category] ?? 0) - (PRIORITY[a.category] ?? 0);
   });
 
-  return hits[0].category;
+  const best = hits[0].category;
+
+  // ドキュメント系は本体台数のみカウント（ライセンスは施策に載せない）
+  if (
+    (best === "Canon MFP" || best === "Canon プロダクト機") &&
+    isNonCountableUnit(productName)
+  ) {
+    return "";
+  }
+
+  return best;
 }
 
 // ---- ネットワーク待機 ---------------------------------------------------
