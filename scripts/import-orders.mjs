@@ -232,11 +232,12 @@ async function main() {
     const matchedCount = rows.filter((r) => r.category_key !== "").length;
     log(`[INFO] ${file}: ${validRecords.length}件中 ${matchedCount}件が重点商材にマッチ`);
 
+    // ignoreDuplicates: false → 重複時も category_key を再分類結果で更新する
     const { data, error } = await supabase
       .from("orders")
       .upsert(rows, {
         onConflict: "slip_date,jan_code,customer_name,person",
-        ignoreDuplicates: true,
+        ignoreDuplicates: false,
       })
       .select("id");
 

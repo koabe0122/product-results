@@ -47,6 +47,7 @@ export default function DashboardPage() {
     title: string;
     categoryKey?: string;
     person?: string;
+    personDepartment?: string;
   }>({ open: false, title: "" });
 
   const fetchData = useCallback(async () => {
@@ -175,7 +176,7 @@ export default function DashboardPage() {
               <h1 className="text-lg font-bold text-gray-800">
                 重点商材 受注状況
               </h1>
-              <p className="text-xs text-gray-400">{fiscalYear}年度</p>
+              <p className="text-xs text-gray-500">{fiscalYear}年度</p>
             </div>
             <PeriodFilter value={period} onChange={setPeriod} />
           </div>
@@ -218,7 +219,7 @@ export default function DashboardPage() {
         ) : (
           <>
             {/* 商材カード — ジャンルごとにセクション分け */}
-            {genreGroups.length > 0 ? (
+            {!error && genreGroups.length > 0 ? (
               genreGroups.map(([genreName, genre]) => {
                 const filtered = productSummaries.filter(
                   (s) => (s.product.genre?.name ?? "その他") === genreName
@@ -254,16 +255,16 @@ export default function DashboardPage() {
                   </section>
                 );
               })
-            ) : (
-              <div className="text-center py-16 text-gray-400 text-sm">
+            ) : !error ? (
+              <div className="text-center py-16 text-gray-500 text-sm">
                 重点商材が登録されていません。
                 <br />
                 Supabase の priority_products テーブルにデータを追加してください。
               </div>
-            )}
+            ) : null}
 
             {/* 担当者ランキング */}
-            {persons.length > 0 && (
+            {!error && persons.length > 0 && (
               <section aria-labelledby="ranking-heading">
                 <h2
                   id="ranking-heading"
@@ -279,6 +280,7 @@ export default function DashboardPage() {
                         open: true,
                         title: `${person}（${dept}）`,
                         person,
+                        personDepartment: dept,
                       })
                     }
                   />
@@ -295,7 +297,7 @@ export default function DashboardPage() {
         title={drawer.title}
         categoryKey={drawer.categoryKey}
         person={drawer.person}
-        department={department}
+        department={drawer.personDepartment ?? department}
         period={period}
         fiscalYear={fiscalYear}
         onClose={() => setDrawer({ open: false, title: "" })}

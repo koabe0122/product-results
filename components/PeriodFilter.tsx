@@ -16,6 +16,8 @@ export function PeriodFilter({ value, onChange }: PeriodFilterProps) {
       {PERIODS.map((p) => (
         <button
           key={p}
+          type="button"
+          aria-pressed={value === p}
           onClick={() => onChange(p)}
           className={cn(
             "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",

@@ -38,13 +38,12 @@ export function OrderDetailDrawer({
       const params = new URLSearchParams({ period, fiscalYear: String(fiscalYear) });
       if (categoryKey) params.set("categoryKey", categoryKey);
       if (department && department !== "全社") params.set("department", department);
+      if (person) params.set("person", person);
 
       const res = await fetch(`/api/orders?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      let data: OrderDetail[] = json.orders ?? [];
-      if (person) data = data.filter((o) => o.person === person);
-      setOrders(data);
+      setOrders(json.orders ?? []);
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : "データ取得に失敗しました");
     } finally {
@@ -56,14 +55,20 @@ export function OrderDetailDrawer({
     fetchOrders();
   }, [fetchOrders]);
 
-  // ESCキーで閉じる
+  // ESCキーで閉じる + 背景スクロールロック
   useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -91,7 +96,9 @@ export function OrderDetailDrawer({
             <h2 id="drawer-title" className="text-base font-bold text-gray-800 line-clamp-1">{title}</h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="閉じる"
             className="p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-500"
           >
             <X size={18} />

@@ -34,16 +34,16 @@ export function ProductCard({ summary, onCountClick }: ProductCardProps) {
             onClick={() => onCountClick?.(product.product_name, product.product_name)}
             className={cn(
               "text-3xl font-bold tabular-nums cursor-pointer hover:underline",
-              achievementColor(rate)
+              achievementColor(rate, target > 0)
             )}
             title="クリックで詳細表示"
           >
             {formatCount(actual)}
           </button>
-          <span className="text-gray-400 text-sm ml-1">件</span>
+          <span className="text-gray-500 text-sm ml-1">件</span>
         </div>
         <div className="text-right">
-          <div className="text-xs text-gray-400">目標</div>
+          <div className="text-xs text-gray-500">目標</div>
           <div className="text-base font-semibold text-gray-600">
             {formatCount(target)}件
           </div>
@@ -54,7 +54,7 @@ export function ProductCard({ summary, onCountClick }: ProductCardProps) {
       <div>
         <div className="flex justify-between text-xs text-gray-500 mb-1">
           <span>達成率</span>
-          <span className={cn("font-bold", achievementColor(rate))}>
+          <span className={cn("font-bold", achievementColor(rate, target > 0))}>
             {target > 0 ? `${Math.round(rate)}%` : "—"}
           </span>
         </div>
@@ -67,8 +67,11 @@ export function ProductCard({ summary, onCountClick }: ProductCardProps) {
           aria-label={`達成率 ${Math.round(rate)}%`}
         >
           <div
-            className={cn("h-3 rounded-full transition-all duration-500", progressBarColor(rate))}
-            style={{ width: `${cappedRate}%` }}
+            className={cn(
+              "h-3 rounded-full transition-all duration-500",
+              progressBarColor(rate, target > 0)
+            )}
+            style={{ width: `${target > 0 ? cappedRate : 0}%` }}
           />
         </div>
       </div>

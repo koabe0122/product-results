@@ -11,31 +11,21 @@
 
 ## 2. データベーススキーマ適用
 
+### 初回セットアップ（新規プロジェクト）
+
 1. Supabase の **SQL Editor** を開く
 2. `supabase/schema.sql` の内容をすべてコピーして実行
-3. `genres` と `departments` の初期データが投入される
 
-## 3. 重点商材・目標値の登録
+### 既存DBへのカテゴリキー対応（必須）
 
-Supabase の Table Editor または SQL Editor で登録：
+すでに `schema.sql` を適用済みの場合は、次を **順番に** SQL Editor で実行します。
 
-```sql
--- ジャンルIDを確認
-select * from genres;
+1. `supabase/migrate_001_category_key.sql`（カラム追加・制約変更）
+2. `supabase/seed_data.sql`（2026年度 重点商材19件 + 部門別目標）
 
--- 重点商材登録（例: 2026年度）
-insert into priority_products (jan_code, product_name, genre_id, fiscal_year) values
-  ('4549292218947', 'キヤノン imageRUNNER ADVANCE DX C3930F', 1, 2026),
-  ('4560000000001', 'HP ノートPC EliteBook 840', 3, 2026);
+これがないとダッシュボードに施策・目標が表示されません。
 
--- 目標値登録（全社目標: department_id = null）
--- まず priority_products と departments の id を確認してから登録
-insert into targets (product_id, department_id, fiscal_year, target_count) values
-  (1, null, 2026, 50),   -- 全社目標 50件
-  (1, 12,   2026, 10);   -- 鶴岡支店目標 10件
-```
-
-## 4. ローカル環境の設定
+## 3. ローカル環境の設定
 
 ```bash
 # .env.local.example をコピー
@@ -44,14 +34,14 @@ cp .env.local.example .env.local
 # .env.local を編集して Supabase の情報を入力
 ```
 
-## 5. 開発サーバー起動
+## 4. 開発サーバー起動
 
 ```bash
 npm run dev
 # → http://localhost:3000 でダッシュボードを確認
 ```
 
-## 6. Vercel デプロイ
+## 5. Vercel デプロイ
 
 1. GitHub にリポジトリを作成して push
 2. [https://vercel.com](https://vercel.com) で「New Project」→ GitHubリポジトリを選択
@@ -60,48 +50,25 @@ npm run dev
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. Deploy ボタンをクリック
 
-## 7. Windows タスクスケジューラ登録（PC起動時にCSV取込）
+公開URL例: https://product-results.vercel.app
 
-スクリプトはPC起動・ログイン時に自動実行されます。
-ネットワーク共有が利用可能になるまで最大60秒間リトライします。
+## 6. Windows 起動時のCSV取込
 
-1. Node.js がインストールされていることを確認: `node -v`
-2. `.env.local` に `SUPABASE_SERVICE_KEY` と `CSV_FOLDER` を設定
-3. PowerShell を **管理者として実行** して以下を実行:
+### 方法A: スタートアップフォルダ（管理者権限不要・推奨）
 
-```powershell
-$action = New-ScheduledTaskAction `
-  -Execute "node" `
-  -Argument "scripts\import-orders.mjs" `
-  -WorkingDirectory "C:\Users\koabe.MECOM1\src\product-results"
+1. `Win + R` → `shell:startup` でスタートアップフォルダを開く
+2. `scripts/run-import.vbs` のショートカットをそこに置く
+3. PC再起動後、`scripts/logs/` にログが出ることを確認
 
-# ログイン時トリガー（30秒遅延でネットワーク安定後に実行）
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-$trigger.Delay = "PT30S"
+### 方法B: タスクスケジューラ
 
-$settings = New-ScheduledTaskSettingsSet `
-  -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
-  -RunOnlyIfNetworkAvailable $true
+PowerShell を **管理者として実行** し、`scripts/register-task.ps1` を実行。
 
-Register-ScheduledTask `
-  -TaskName "重点商材CSV取込" `
-  -Action $action `
-  -Trigger $trigger `
-  -Settings $settings `
-  -RunLevel Highest `
-  -Force
-```
+ネットワーク共有が利用可能になるまで最大60秒リトライします。
 
-- `AtLogOn`: PC起動後にユーザーがログインしたタイミングで実行
-- `Delay = PT30S`: ログイン後30秒待ってから実行（ネットワーク安定のため）
-- `RunOnlyIfNetworkAvailable`: ネットワーク未接続時はスキップ
+### CSVフォルダパス
 
-4. タスクスケジューラで「重点商材CSV取込」が登録されたことを確認
-5. 「今すぐ実行」でテスト、`scripts/logs/` にログが出力されることを確認
-
-### CSVフォルダパスを変更したい場合
-
-`.env.local` の `CSV_FOLDER` を編集するだけで変更できます:
+`.env.local` の `CSV_FOLDER` を編集:
 
 ```
 CSV_FOLDER=\\192.168.0.2\工具用pcデータ交換\koabe

@@ -32,8 +32,16 @@ export function RankingTable({ persons, onPersonClick }: RankingTableProps) {
           {persons.map((p, i) => (
             <tr
               key={`${p.person}-${p.department}`}
-              className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors"
+              role="button"
+              tabIndex={0}
+              className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors focus:outline-none focus:bg-blue-50"
               onClick={() => onPersonClick?.(p.person, p.department)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onPersonClick?.(p.person, p.department);
+                }
+              }}
             >
               <td className="py-2.5 px-3 text-gray-400 font-mono">{i + 1}</td>
               <td className="py-2.5 px-3 font-medium text-gray-800">{p.person}</td>
