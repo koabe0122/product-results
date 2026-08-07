@@ -34,12 +34,14 @@ function loadEnv() {
 }
 loadEnv();
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL =
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const CSV_FOLDER = process.env.CSV_FOLDER ?? "\\\\192.168.0.2\\工具用pcデータ交換\\koabe";
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error("[ERROR] SUPABASE_URL / SUPABASE_SERVICE_KEY が設定されていません");
+  console.error("  .env.local に SUPABASE_URL と SUPABASE_SERVICE_KEY を設定してください");
   process.exit(1);
 }
 
@@ -214,7 +216,7 @@ async function main() {
     }
 
     // 各レコードにカテゴリキーを付与
-    const rows = validRecords.map((r) => {
+    const rawRows = validRecords.map((r) => {
       const productName = (r["商品名"] ?? "").trim();
       const categoryKey = matchCategory(productName, categoryMap);
       return {
@@ -229,27 +231,50 @@ async function main() {
       };
     });
 
+    // 同一バッチ内の重複キーを除去（後勝ち）
+    // ON CONFLICT DO UPDATE は同一ステートメント内で同じ行を2回更新できない
+    const deduped = new Map();
+    for (const row of rawRows) {
+      const key = `${row.slip_date}|${row.jan_code}|${row.customer_name}|${row.person}`;
+      deduped.set(key, row);
+    }
+    const rows = Array.from(deduped.values());
+    const dupInFile = rawRows.length - rows.length;
+
     const matchedCount = rows.filter((r) => r.category_key !== "").length;
-    log(`[INFO] ${file}: ${validRecords.length}件中 ${matchedCount}件が重点商材にマッチ`);
+    log(
+      `[INFO] ${file}: ${validRecords.length}件中 ${matchedCount}件が重点商材にマッチ` +
+        (dupInFile > 0 ? `（ファイル内重複 ${dupInFile}件を除去）` : "")
+    );
 
-    // ignoreDuplicates: false → 重複時も category_key を再分類結果で更新する
-    const { data, error } = await supabase
-      .from("orders")
-      .upsert(rows, {
-        onConflict: "slip_date,jan_code,customer_name,person",
-        ignoreDuplicates: false,
-      })
-      .select("id");
+    // 大きすぎる場合は分割 upsert
+    const CHUNK = 200;
+    let inserted = 0;
+    let fileError = false;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const chunk = rows.slice(i, i + CHUNK);
+      const { data, error } = await supabase
+        .from("orders")
+        .upsert(chunk, {
+          onConflict: "slip_date,jan_code,customer_name,person",
+          ignoreDuplicates: false,
+        })
+        .select("id");
 
-    if (error) {
-      log(`[ERROR] DB書き込み失敗: ${file} - ${error.message}`);
-      totalErrors++;
-    } else {
-      const inserted = data?.length ?? 0;
+      if (error) {
+        log(`[ERROR] DB書き込み失敗: ${file} (chunk ${i}-${i + chunk.length}) - ${error.message}`);
+        totalErrors++;
+        fileError = true;
+        break;
+      }
+      inserted += data?.length ?? 0;
+    }
+
+    if (!fileError) {
       const skipped = rows.length - inserted;
-      log(`[INFO] ${file}: ${inserted}件挿入 / ${skipped}件スキップ（重複）`);
+      log(`[INFO] ${file}: ${inserted}件 upsert / 差分スキップ相当 ${Math.max(0, skipped)}件`);
       totalInserted += inserted;
-      totalSkipped += skipped;
+      totalSkipped += Math.max(0, skipped);
     }
   }
 
