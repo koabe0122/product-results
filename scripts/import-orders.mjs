@@ -61,27 +61,44 @@ function log(msg) {
   fs.appendFileSync(logFile, line + "\n", "utf-8");
 }
 
-// ---- CSVパース ----------------------------------------------------------
+// ---- CSVパース（クォート対応・空カラム混入なし） --------------------------
 /**
- * Shift-JIS の CSV ファイルを読み込んでオブジェクト配列を返す
- * ヘッダ行: 伝票日付,商品コード,商品名,受注先 名称1,部署,担当者名[,ジャンル]
+ * ヘッダ例: 伝票日付,大分類,商品コード,商品名,受注先 名称1,部署,担当者名
  */
 function parseCSV(filePath) {
-  const raw = fs.readFileSync(filePath);
-  const text = iconv.decode(raw, "Shift_JIS");
+  const text = iconv.decode(fs.readFileSync(filePath), "Shift_JIS");
   const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 
   const records = [];
   let header = null;
 
   for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
+    if (!line.trim()) continue;
 
-    // 簡易CSVパース（ダブルクォート対応）
-    const cols = trimmed.match(/("(?:[^"]|"")*"|[^,]*)/g)?.map((c) =>
-      c.replace(/^"|"$/g, "").replace(/""/g, '"').trim()
-    ) ?? [];
+    const cols = [];
+    let cur = "";
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"' && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else if (ch === '"') {
+          inQ = false;
+        } else {
+          cur += ch;
+        }
+      } else if (ch === '"') {
+        inQ = true;
+      } else if (ch === ",") {
+        cols.push(cur.trim());
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    cols.push(cur.trim());
 
     if (!header) {
       header = cols;
@@ -97,12 +114,32 @@ function parseCSV(filePath) {
   return records;
 }
 
+// ---- 部門名正規化 -------------------------------------------------------
+const DEPT_MAP = [
+  [/ＡＭ\s*１\s*Ｇ|AM\s*1\s*G|ＡＭ第一|AM第一/i, "AM第一G"],
+  [/ＡＭ\s*２\s*Ｇ|AM\s*2\s*G|ＡＭ第二|AM第二/i, "AM第二G"],
+  [/ＡＭ公共|AM公共|公共部/i, "AM公共部"],
+  [/ＡＭオフィス|AMオフィス|オフィス部/i, "AMオフィス部"],
+  [/村山/i, "村山支店"],
+  [/米沢/i, "米沢支店"],
+  [/新庄/i, "新庄営業所"],
+  [/酒田/i, "酒田支店"],
+  [/鶴岡/i, "鶴岡支店"],
+  [/ＳＣ|SC部門|ＳＥ|SE部門/i, "SC部門"],
+];
+
+function normalizeDepartment(dept) {
+  const raw = (dept ?? "").trim();
+  if (!raw) return raw;
+  for (const [re, name] of DEPT_MAP) {
+    if (re.test(raw)) return name;
+  }
+  return raw.replace(/[Ａ-Ｚａ-ｚ０-９]/i, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) - 0xfee0)
+  );
+}
+
 // ---- カテゴリマップ構築 --------------------------------------------------
-/**
- * priority_products から match_patterns を取得し、
- * 商品名 → 施策名（product_name）のマッピングマップを構築する。
- * @returns {{ product_name: string; match_patterns: string[] }[]}
- */
 async function buildCategoryMap() {
   const { data, error } = await supabase
     .from("priority_products")
@@ -117,29 +154,52 @@ async function buildCategoryMap() {
 }
 
 /**
- * 商品名に対してパターンマッチングを行い、施策名（category_key）を返す。
- * 一致した最初の施策名を返す。どれにも一致しない場合は空文字を返す。
- * @param {string} productName
- * @param {{ product_name: string; match_patterns: string[] }[]} categoryMap
- * @returns {string}
+ * 最長パターン一致で施策名を返す。
+ * 同長の場合は固有ソフト（ESET等）を優先。
  */
 function matchCategory(productName, categoryMap) {
   const upper = productName.toUpperCase();
+  const hits = [];
+
   for (const cat of categoryMap) {
-    for (const pattern of (cat.match_patterns ?? [])) {
-      if (upper.includes(pattern.toUpperCase())) {
-        return cat.product_name;
+    for (const pattern of cat.match_patterns ?? []) {
+      const p = String(pattern);
+      if (!p) continue;
+      if (upper.includes(p.toUpperCase())) {
+        hits.push({ category: cat.product_name, pattern: p, len: p.length });
       }
     }
   }
-  return "";
+
+  if (hits.length === 0) return "";
+
+  const PRIORITY = {
+    ESET: 100,
+    SKYSEA: 100,
+    AppCheck: 100,
+    Fortigate: 90,
+    Barracuda: 90,
+    SubGate: 90,
+    "HOME-UNIT": 90,
+    "GoogleWS・M365": 80,
+    "AIツール100件受注": 70,
+    "勤怠管理拡販": 70,
+    "電子取引ツール": 70,
+    "Canon MFP": 60,
+    "Canon プロダクト機": 50,
+    "RISO RPS": 60,
+    "RISO ORP": 60,
+  };
+
+  hits.sort((a, b) => {
+    if (b.len !== a.len) return b.len - a.len;
+    return (PRIORITY[b.category] ?? 0) - (PRIORITY[a.category] ?? 0);
+  });
+
+  return hits[0].category;
 }
 
 // ---- ネットワーク待機 ---------------------------------------------------
-/**
- * ネットワーク共有フォルダが利用可能になるまで待機する。
- * PC起動直後はネットワークが安定しておらず共有フォルダにアクセスできない場合があるため。
- */
 async function waitForFolder(folderPath, maxRetries = 6, intervalSec = 10) {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -158,18 +218,15 @@ async function waitForFolder(folderPath, maxRetries = 6, intervalSec = 10) {
 async function main() {
   log("=== CSV取込開始 ===");
 
-  // カテゴリマップを先に取得
   const categoryMap = await buildCategoryMap();
   log(`[INFO] カテゴリマップ: ${categoryMap.length}件の施策を読み込みました`);
 
-  // ネットワーク共有フォルダが利用可能になるまで待機（最大60秒）
   const folderReady = await waitForFolder(CSV_FOLDER);
   if (!folderReady) {
     log(`[ERROR] フォルダにアクセスできませんでした（タイムアウト）: ${CSV_FOLDER}`);
     process.exit(1);
   }
 
-  // CSVフォルダ内の全CSVファイルを処理
   let files;
   try {
     files = fs.readdirSync(CSV_FOLDER).filter((f) =>
@@ -204,7 +261,6 @@ async function main() {
       continue;
     }
 
-    // 伝票日付が日付形式の行のみ処理（サンプル行などを除外）
     const validRecords = records.filter((r) => {
       const dateStr = r["伝票日付"] ?? "";
       return /^\d{4}\/\d{2}\/\d{2}$/.test(dateStr);
@@ -215,24 +271,20 @@ async function main() {
       continue;
     }
 
-    // 各レコードにカテゴリキーを付与
     const rawRows = validRecords.map((r) => {
       const productName = (r["商品名"] ?? "").trim();
-      const categoryKey = matchCategory(productName, categoryMap);
       return {
         slip_date: r["伝票日付"].replace(/\//g, "-"),
         jan_code: String(r["商品コード"] ?? "").trim(),
         product_name: productName,
         customer_name: (r["受注先 名称1"] ?? "").trim(),
-        department: (r["部署"] ?? "").trim(),
+        department: normalizeDepartment(r["部署"] ?? ""),
         person: (r["担当者名"] ?? "").trim(),
-        genre: (r["ジャンル"] ?? "").trim(),
-        category_key: categoryKey,
+        genre: (r["大分類"] || r["ジャンル"] || "").trim(),
+        category_key: matchCategory(productName, categoryMap),
       };
     });
 
-    // 同一バッチ内の重複キーを除去（後勝ち）
-    // ON CONFLICT DO UPDATE は同一ステートメント内で同じ行を2回更新できない
     const deduped = new Map();
     for (const row of rawRows) {
       const key = `${row.slip_date}|${row.jan_code}|${row.customer_name}|${row.person}`;
@@ -247,7 +299,6 @@ async function main() {
         (dupInFile > 0 ? `（ファイル内重複 ${dupInFile}件を除去）` : "")
     );
 
-    // 大きすぎる場合は分割 upsert
     const CHUNK = 200;
     let inserted = 0;
     let fileError = false;
