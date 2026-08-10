@@ -13,12 +13,8 @@ export function ProductCard({ summary, onCountClick }: ProductCardProps) {
   const { product, target, actual, rate } = summary;
   const cappedRate = Math.min(rate, 100);
   const mode = resolveCountMode(product.product_name, product.count_mode);
-  const unit =
-    mode === "unique_contract"
-      ? "契約"
-      : product.product_name === "MFP"
-        ? "台"
-        : "件";
+  // 件数把握が目的。MFP本体は「台」、月額初回カウントも「件」
+  const unit = product.product_name === "MFP" && mode === "line" ? "台" : "件";
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">

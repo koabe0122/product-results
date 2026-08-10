@@ -153,20 +153,19 @@ async function buildCategoryMap() {
   return data ?? [];
 }
 
-/** MFP台数から除外する行（series / ライセンス / 月額など） */
+/** MFPから除外する行（series のみ。ライセンス等は初回カウント対象として残す） */
 function isExcludedFromMfp(productName) {
-  return /series|ｼﾘｰｽﾞ|シリーズ|ﾗｲｾﾝｽ|ライセンス|LICENSE|License|月額|利用料|保守|メンテ|更新/i.test(
-    productName
-  );
+  return /series|ｼﾘｰｽﾞ|シリーズ/i.test(productName);
 }
 
 /**
  * 施策名を返す。
- * MFP は大分類「複写機」を正とし、series・ライセンス等は除外。
+ * MFP は大分類「複写機」を正とし、series のみ除外。
+ * ライセンス等の毎月行は MFP に入れ、集計側で初回のみ数える。
  * それ以外は最長パターン一致。
  */
 function matchCategory(productName, categoryMap, majorCategory = "") {
-  // 大分類「複写機」→ MFP（series / ライセンス等は台数に含めない）
+  // 大分類「複写機」→ MFP（series 除外）
   if ((majorCategory ?? "").trim() === "複写機") {
     return isExcludedFromMfp(productName) ? "" : "MFP";
   }

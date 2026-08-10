@@ -7,7 +7,11 @@ import { ProductCard } from "@/components/ProductCard";
 import { RankingTable } from "@/components/RankingTable";
 import { OrderDetailDrawer } from "@/components/OrderDetailDrawer";
 import { currentFiscalYear } from "@/lib/utils";
-import { countActual, resolveCountMode } from "@/lib/countActual";
+import {
+  countActual,
+  resolveCountMode,
+  filterOrdersForCounting,
+} from "@/lib/countActual";
 import type { Period } from "@/lib/utils";
 import type {
   PriorityProduct,
@@ -131,15 +135,27 @@ export default function DashboardPage() {
     [data?.products, data?.orders, data?.targets, department, selectedDeptId]
   );
 
-  // 担当者サマリー計算
+  // 担当者サマリー（毎月行は初回のみ）
   const persons: PersonSummary[] = useMemo(() => {
+    const modeByProduct = new Map(
+      (data?.products ?? []).map((p) => [
+        p.product_name,
+        resolveCountMode(p.product_name, p.count_mode),
+      ])
+    );
+    const counted = filterOrdersForCounting(data?.orders ?? [], (key) =>
+      modeByProduct.get(key) ?? resolveCountMode(key)
+    );
+
     const personMap = new Map<string, PersonSummary>();
-    for (const o of data?.orders ?? []) {
-      const key = `${o.person}__${o.department}`;
+    for (const o of counted) {
+      const person = o.person ?? "";
+      const dept = o.department ?? "";
+      const key = `${person}__${dept}`;
       if (!personMap.has(key)) {
         personMap.set(key, {
-          person: o.person,
-          department: o.department,
+          person,
+          department: dept,
           totalCount: 0,
           byProduct: [],
         });
@@ -152,7 +168,7 @@ export default function DashboardPage() {
       } else {
         ps.byProduct.push({
           categoryKey: o.category_key,
-          productName: o.product_name,
+          productName: o.product_name ?? "",
           count: 1,
         });
       }
@@ -160,7 +176,7 @@ export default function DashboardPage() {
     return Array.from(personMap.values()).sort(
       (a, b) => b.totalCount - a.totalCount
     );
-  }, [data?.orders]);
+  }, [data?.orders, data?.products]);
 
   // ジャンルグループ
   const genreGroups = useMemo(
