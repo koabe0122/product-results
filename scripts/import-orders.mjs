@@ -153,23 +153,25 @@ async function buildCategoryMap() {
   return data ?? [];
 }
 
-/** 複写機・本体の「台数」に含めない行（ライセンス等） */
-function isNonCountableUnit(productName) {
-  return /ﾗｲｾﾝｽ|ライセンス|LICENSE|License|保守|メンテ|トナー|toner|ドラム/i.test(
-    productName
-  );
-}
-
 /**
- * 最長パターン一致で施策名を返す。
- * 同長の場合は固有ソフト（ESET等）を優先。
- * Canon MFP / プロダクト機は「台数」対象外（ライセンス等）を除外。
+ * 施策名を返す。
+ * Canon MFP は大分類「複写機」を正とする（ライセンス含む・133台基準）。
+ * それ以外は最長パターン一致。
  */
-function matchCategory(productName, categoryMap) {
+function matchCategory(productName, categoryMap, majorCategory = "") {
+  // 大分類「複写機」→ Canon MFP（正解台数の定義）
+  if ((majorCategory ?? "").trim() === "複写機") {
+    return "Canon MFP";
+  }
+
   const upper = productName.toUpperCase();
   const hits = [];
 
   for (const cat of categoryMap) {
+    // Canon MFP は大分類優先のため、商品名パターンでは拾わない
+    // （複写機以外の行が誤って入るのを防ぐ）
+    if (cat.product_name === "Canon MFP") continue;
+
     for (const pattern of cat.match_patterns ?? []) {
       const p = String(pattern);
       if (!p) continue;
@@ -193,7 +195,6 @@ function matchCategory(productName, categoryMap) {
     "AIツール100件受注": 70,
     "勤怠管理拡販": 70,
     "電子取引ツール": 70,
-    "Canon MFP": 60,
     "Canon プロダクト機": 50,
     "RISO RPS": 60,
     "RISO ORP": 60,
@@ -204,17 +205,7 @@ function matchCategory(productName, categoryMap) {
     return (PRIORITY[b.category] ?? 0) - (PRIORITY[a.category] ?? 0);
   });
 
-  const best = hits[0].category;
-
-  // ドキュメント系は本体台数のみカウント（ライセンスは施策に載せない）
-  if (
-    (best === "Canon MFP" || best === "Canon プロダクト機") &&
-    isNonCountableUnit(productName)
-  ) {
-    return "";
-  }
-
-  return best;
+  return hits[0].category;
 }
 
 // ---- ネットワーク待機 ---------------------------------------------------
@@ -291,6 +282,7 @@ async function main() {
 
     const rawRows = validRecords.map((r) => {
       const productName = (r["商品名"] ?? "").trim();
+      const majorCategory = (r["大分類"] || r["ジャンル"] || "").trim();
       return {
         slip_date: r["伝票日付"].replace(/\//g, "-"),
         jan_code: String(r["商品コード"] ?? "").trim(),
@@ -298,8 +290,8 @@ async function main() {
         customer_name: (r["受注先 名称1"] ?? "").trim(),
         department: normalizeDepartment(r["部署"] ?? ""),
         person: (r["担当者名"] ?? "").trim(),
-        genre: (r["大分類"] || r["ジャンル"] || "").trim(),
-        category_key: matchCategory(productName, categoryMap),
+        genre: majorCategory,
+        category_key: matchCategory(productName, categoryMap, majorCategory),
       };
     });
 

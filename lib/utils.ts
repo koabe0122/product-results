@@ -26,7 +26,11 @@ export const PERIOD_LABELS: Record<Period, string> = {
   month: "当月",
 };
 
-/** 会計年度は4月始まり */
+/**
+ * 会計年度は4月始まり（上期・四半期）。
+ * 通期のみ、CSV実績に合わせ同年1月〜翌年3月を含む
+ * （複写機など1-3月データが同一CSVに含まれるため）。
+ */
 export function getDateRangeForPeriod(
   period: Period,
   fiscalYear: number
@@ -34,7 +38,7 @@ export function getDateRangeForPeriod(
   const y = fiscalYear;
   switch (period) {
     case "all":
-      return { from: `${y}-04-01`, to: `${y + 1}-03-31` };
+      return { from: `${y}-01-01`, to: `${y + 1}-03-31` };
     case "h1":
       return { from: `${y}-04-01`, to: `${y}-09-30` };
     case "h2":
