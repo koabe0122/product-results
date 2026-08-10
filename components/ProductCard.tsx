@@ -6,65 +6,69 @@ import type { ProductSummary } from "@/lib/types";
 
 interface ProductCardProps {
   summary: ProductSummary;
+  index?: number;
   onCountClick?: (categoryKey: string, productName: string) => void;
 }
 
-export function ProductCard({ summary, onCountClick }: ProductCardProps) {
+export function ProductCard({ summary, index = 0, onCountClick }: ProductCardProps) {
   const { product, target, actual, rate } = summary;
   const cappedRate = Math.min(rate, 100);
   const mode = resolveCountMode(product.product_name, product.count_mode);
-  // 件数把握が目的。MFP本体は「台」、月額初回カウントも「件」
   const unit = product.product_name === "MFP" && mode === "line" ? "台" : "件";
+  const genreColor = product.genre?.color ?? "#0f766e";
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
-      {/* ジャンルバッジ + 商品名 */}
-      <div className="flex items-start gap-2">
-        <span
-          className="inline-block rounded-full px-2 py-0.5 text-xs font-medium text-white shrink-0 mt-0.5"
-          style={{ backgroundColor: product.genre?.color ?? "#6366f1" }}
-        >
-          {product.genre?.name ?? "その他"}
-        </span>
-        <span className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">
+    <button
+      type="button"
+      onClick={() => onCountClick?.(product.product_name, product.product_name)}
+      className={cn(
+        "group animate-rise relative flex w-full flex-col gap-4 rounded-2xl bg-white p-4 text-left",
+        "ring-1 ring-slate-200/80 shadow-[var(--shadow)]",
+        "transition-all duration-300 hover:-translate-y-1 hover:ring-teal-300/70 hover:shadow-xl",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+      )}
+      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+    >
+      <span
+        className="absolute inset-y-3 left-0 w-1 rounded-full"
+        style={{ backgroundColor: genreColor }}
+        aria-hidden
+      />
+
+      <div className="flex items-start justify-between gap-2 pl-2">
+        <h3 className="font-display text-[15px] font-bold leading-snug text-slate-900 line-clamp-2">
           {product.product_name}
+        </h3>
+        <span className="shrink-0 pt-0.5 text-xs font-semibold text-slate-400 transition group-hover:text-teal-600">
+          詳細 ›
         </span>
       </div>
 
-      {/* 実績 / 目標 */}
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between gap-3 pl-2">
         <div>
-          <button
-            onClick={() => onCountClick?.(product.product_name, product.product_name)}
-            className={cn(
-              "text-3xl font-bold tabular-nums cursor-pointer hover:underline",
-              achievementColor(rate, target > 0)
-            )}
-            title="クリックで詳細表示"
-          >
+          <div className="font-display text-4xl font-extrabold tabular-nums tracking-tight text-slate-900">
             {formatCount(actual)}
-          </button>
-          <span className="text-gray-500 text-sm ml-1">{unit}</span>
+            <span className="ml-1 text-sm font-semibold text-slate-500">{unit}</span>
+          </div>
         </div>
         <div className="text-right">
-          <div className="text-xs text-gray-500">目標</div>
-          <div className="text-base font-semibold text-gray-600">
+          <div className="text-[11px] font-medium text-slate-400">目標</div>
+          <div className="text-base font-bold tabular-nums text-slate-700">
             {formatCount(target)}
-            {unit}
+            <span className="text-xs font-medium text-slate-400">{unit}</span>
           </div>
         </div>
       </div>
 
-      {/* プログレスバー */}
-      <div>
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
-          <span>達成率</span>
-          <span className={cn("font-bold", achievementColor(rate, target > 0))}>
+      <div className="pl-2">
+        <div className="mb-1.5 flex justify-between text-[11px] font-semibold">
+          <span className="text-slate-500">達成率</span>
+          <span className={achievementColor(rate, target > 0)}>
             {target > 0 ? `${Math.round(rate)}%` : "—"}
           </span>
         </div>
         <div
-          className="w-full bg-gray-100 rounded-full h-3"
+          className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100"
           role="progressbar"
           aria-valuenow={Math.round(cappedRate)}
           aria-valuemin={0}
@@ -73,13 +77,13 @@ export function ProductCard({ summary, onCountClick }: ProductCardProps) {
         >
           <div
             className={cn(
-              "h-3 rounded-full transition-all duration-500",
+              "progress-fill h-full rounded-full transition-[width] duration-500",
               progressBarColor(rate, target > 0)
             )}
             style={{ width: `${target > 0 ? cappedRate : 0}%` }}
           />
         </div>
       </div>
-    </div>
+    </button>
   );
 }

@@ -192,41 +192,115 @@ export default function DashboardPage() {
     [data?.products]
   );
 
+  const kpi = useMemo(() => {
+    const withTarget = productSummaries.filter((s) => s.target > 0);
+    const avgRate =
+      withTarget.length > 0
+        ? withTarget.reduce((s, p) => s + p.rate, 0) / withTarget.length
+        : 0;
+    const hit = withTarget.filter((s) => s.rate >= 100).length;
+    return {
+      productCount: productSummaries.length,
+      totalActual: productSummaries.reduce((s, p) => s + p.actual, 0),
+      avgRate,
+      hit,
+      withTarget: withTarget.length,
+    };
+  }, [productSummaries]);
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ヘッダー */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[var(--header)] text-[var(--header-ink)] shadow-lg shadow-slate-900/20">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-lg font-bold text-gray-800">
-                重点商材 受注状況
+              <p className="mb-1 text-[11px] font-semibold tracking-[0.18em] text-teal-300 uppercase">
+                Priority Products
+              </p>
+              <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-[1.75rem]">
+                重点商材ダッシュボード
               </h1>
-              <p className="text-xs text-gray-500">{fiscalYear}年度</p>
+              <p className="mt-1 text-xs text-slate-400">
+                {fiscalYear}年度 · {department}
+              </p>
             </div>
             <PeriodFilter value={period} onChange={setPeriod} />
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* 部門タブ */}
+      <main className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6">
         <DepartmentTabs
           departments={departments}
           value={department}
           onChange={setDepartment}
         />
 
-        {/* エラー */}
+        {!error && (
+          <section
+            aria-label="サマリー"
+            className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+          >
+            {loading
+              ? [...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-[88px] animate-pulse rounded-2xl bg-white/70 ring-1 ring-slate-200/70"
+                  />
+                ))
+              : [
+                  {
+                    label: "商材数",
+                    value: String(kpi.productCount),
+                    unit: "品目",
+                  },
+                  {
+                    label: "合計実績",
+                    value: kpi.totalActual.toLocaleString("ja-JP"),
+                    unit: "件/台",
+                  },
+                  {
+                    label: "平均達成率",
+                    value:
+                      kpi.withTarget > 0 ? `${Math.round(kpi.avgRate)}` : "—",
+                    unit: kpi.withTarget > 0 ? "%" : "",
+                  },
+                  {
+                    label: "目標達成",
+                    value: `${kpi.hit}`,
+                    unit: `/ ${kpi.withTarget}`,
+                  },
+                ].map((item, i) => (
+                  <div
+                    key={item.label}
+                    className="animate-rise rounded-2xl bg-white/90 p-4 ring-1 ring-slate-200/80 shadow-[var(--shadow)]"
+                    style={{ animationDelay: `${i * 50}ms` }}
+                  >
+                    <div className="text-[11px] font-semibold tracking-wide text-slate-500">
+                      {item.label}
+                    </div>
+                    <div className="mt-1 font-display text-3xl font-extrabold tabular-nums tracking-tight text-slate-900">
+                      {item.value}
+                      {item.unit && (
+                        <span className="ml-1 text-sm font-semibold text-slate-400">
+                          {item.unit}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+          </section>
+        )}
+
         {error && (
           <div
             role="alert"
-            className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2"
+            className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
           >
             <span className="font-semibold">エラー:</span> {error}
             <button
               onClick={fetchData}
-              className="ml-auto text-red-600 underline text-xs"
+              className="ml-auto text-xs font-semibold text-rose-700 underline"
             >
               再試行
             </button>
@@ -234,17 +308,16 @@ export default function DashboardPage() {
         )}
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[...Array(8)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white rounded-lg border border-gray-200 h-40 animate-pulse"
+                className="h-44 animate-pulse rounded-2xl bg-white/70 ring-1 ring-slate-200/70"
               />
             ))}
           </div>
         ) : (
           <>
-            {/* 商材カード — ジャンルごとにセクション分け */}
             {!error && genreGroups.length > 0 ? (
               genreGroups.map(([genreName, genre]) => {
                 const filtered = productSummaries.filter(
@@ -252,22 +325,27 @@ export default function DashboardPage() {
                 );
                 if (filtered.length === 0) return null;
                 return (
-                  <section key={genreName}>
-                    <div className="flex items-center gap-2 mb-3">
+                  <section key={genreName} className="space-y-3">
+                    <div className="flex items-center gap-2.5">
                       <span
-                        className="w-3 h-3 rounded-full inline-block"
-                        style={{ backgroundColor: genre?.color ?? "#6b7280" }}
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: genre?.color ?? "#64748b" }}
                         aria-hidden="true"
                       />
-                      <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                      <h2 className="font-display text-sm font-bold tracking-wide text-slate-700">
                         {genreName}
                       </h2>
+                      <span className="text-xs font-medium text-slate-400">
+                        {filtered.length}商材
+                      </span>
+                      <div className="ml-1 h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent" />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {filtered.map((s) => (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {filtered.map((s, idx) => (
                         <ProductCard
                           key={s.product.id}
                           summary={s}
+                          index={idx}
                           onCountClick={(categoryKey, productName) =>
                             setDrawer({
                               open: true,
@@ -282,23 +360,28 @@ export default function DashboardPage() {
                 );
               })
             ) : !error ? (
-              <div className="text-center py-16 text-gray-500 text-sm">
+              <div className="rounded-2xl bg-white/80 py-16 text-center text-sm text-slate-500 ring-1 ring-slate-200">
                 重点商材が登録されていません。
                 <br />
                 Supabase の priority_products テーブルにデータを追加してください。
               </div>
             ) : null}
 
-            {/* 担当者ランキング */}
             {!error && persons.length > 0 && (
-              <section aria-labelledby="ranking-heading">
-                <h2
-                  id="ranking-heading"
-                  className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3"
-                >
-                  メンバーランキング — 全{persons.length}名
-                </h2>
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <section aria-labelledby="ranking-heading" className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <h2
+                    id="ranking-heading"
+                    className="font-display text-sm font-bold tracking-wide text-slate-700"
+                  >
+                    メンバーランキング
+                  </h2>
+                  <span className="text-xs font-medium text-slate-400">
+                    全{persons.length}名
+                  </span>
+                  <div className="ml-1 h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent" />
+                </div>
+                <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200/80 shadow-[var(--shadow)]">
                   <RankingTable
                     persons={persons}
                     onPersonClick={(person, dept) =>
@@ -317,7 +400,6 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* ドリルダウン ドロワー */}
       <OrderDetailDrawer
         open={drawer.open}
         title={drawer.title}

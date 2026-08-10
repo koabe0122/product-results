@@ -74,15 +74,15 @@ export function formatCount(n: number): string {
 }
 
 export function achievementColor(rate: number, hasTarget = true): string {
-  if (!hasTarget) return "text-gray-800";
-  if (rate >= 100) return "text-emerald-600";
-  if (rate >= 80) return "text-amber-500";
-  return "text-red-500";
+  if (!hasTarget) return "text-slate-800";
+  if (rate >= 100) return "text-teal-700";
+  if (rate >= 80) return "text-amber-600";
+  return "text-rose-600";
 }
 
 export function progressBarColor(rate: number, hasTarget = true): string {
-  if (!hasTarget) return "bg-gray-300";
-  if (rate >= 100) return "bg-emerald-500";
-  if (rate >= 80) return "bg-amber-400";
-  return "bg-red-400";
+  if (!hasTarget) return "bg-slate-300";
+  if (rate >= 100) return "bg-teal-600";
+  if (rate >= 80) return "bg-amber-500";
+  return "bg-rose-500";
 }
