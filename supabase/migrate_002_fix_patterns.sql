@@ -17,7 +17,7 @@ UPDATE priority_products
 SET match_patterns = ARRAY[
   'imageRUNNER', 'iR-ADV', 'iR ADV', 'imageFORCE', 'ImageFORCE', '複合機'
 ]
-WHERE product_name = 'Canon MFP' AND fiscal_year = 2026;
+WHERE product_name IN ('MFP', 'Canon MFP') AND fiscal_year = 2026;
 
 -- Canon プロダクト機: 短い PRO を廃止（PROTECT 誤爆防止）
 UPDATE priority_products

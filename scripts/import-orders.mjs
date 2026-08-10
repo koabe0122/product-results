@@ -153,24 +153,30 @@ async function buildCategoryMap() {
   return data ?? [];
 }
 
+/** MFP台数から除外する行（series / ライセンス / 月額など） */
+function isExcludedFromMfp(productName) {
+  return /series|ｼﾘｰｽﾞ|シリーズ|ﾗｲｾﾝｽ|ライセンス|LICENSE|License|月額|利用料|保守|メンテ|更新/i.test(
+    productName
+  );
+}
+
 /**
  * 施策名を返す。
- * Canon MFP は大分類「複写機」を正とする（ライセンス含む・133台基準）。
+ * MFP は大分類「複写機」を正とし、series・ライセンス等は除外。
  * それ以外は最長パターン一致。
  */
 function matchCategory(productName, categoryMap, majorCategory = "") {
-  // 大分類「複写機」→ Canon MFP（正解台数の定義）
+  // 大分類「複写機」→ MFP（series / ライセンス等は台数に含めない）
   if ((majorCategory ?? "").trim() === "複写機") {
-    return "Canon MFP";
+    return isExcludedFromMfp(productName) ? "" : "MFP";
   }
 
   const upper = productName.toUpperCase();
   const hits = [];
 
   for (const cat of categoryMap) {
-    // Canon MFP は大分類優先のため、商品名パターンでは拾わない
-    // （複写機以外の行が誤って入るのを防ぐ）
-    if (cat.product_name === "Canon MFP") continue;
+    // MFP は大分類優先のため、商品名パターンでは拾わない
+    if (cat.product_name === "MFP" || cat.product_name === "Canon MFP") continue;
 
     for (const pattern of cat.match_patterns ?? []) {
       const p = String(pattern);

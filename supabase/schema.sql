@@ -27,6 +27,8 @@ create table if not exists priority_products (
   genre_id       integer not null references genres(id) on delete restrict,
   fiscal_year    integer not null,
   match_patterns text[] not null default '{}',
+  -- line=受注行数(台数) / unique_contract=客先×商品ユニーク(月額)
+  count_mode     text not null default 'line',
   created_at     timestamptz not null default now(),
   unique (product_name, fiscal_year)
 );

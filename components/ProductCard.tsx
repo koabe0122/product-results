@@ -1,6 +1,7 @@
 "use client";
 
 import { cn, formatCount, achievementColor, progressBarColor } from "@/lib/utils";
+import { resolveCountMode } from "@/lib/countActual";
 import type { ProductSummary } from "@/lib/types";
 
 interface ProductCardProps {
@@ -11,6 +12,13 @@ interface ProductCardProps {
 export function ProductCard({ summary, onCountClick }: ProductCardProps) {
   const { product, target, actual, rate } = summary;
   const cappedRate = Math.min(rate, 100);
+  const mode = resolveCountMode(product.product_name, product.count_mode);
+  const unit =
+    mode === "unique_contract"
+      ? "契約"
+      : product.product_name === "MFP"
+        ? "台"
+        : "件";
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
@@ -40,12 +48,13 @@ export function ProductCard({ summary, onCountClick }: ProductCardProps) {
           >
             {formatCount(actual)}
           </button>
-          <span className="text-gray-500 text-sm ml-1">件</span>
+          <span className="text-gray-500 text-sm ml-1">{unit}</span>
         </div>
         <div className="text-right">
           <div className="text-xs text-gray-500">目標</div>
           <div className="text-base font-semibold text-gray-600">
-            {formatCount(target)}件
+            {formatCount(target)}
+            {unit}
           </div>
         </div>
       </div>

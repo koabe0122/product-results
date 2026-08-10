@@ -28,7 +28,8 @@ const updates = {
     "HOME-Type", "type-U5", "Type-U5", "type-U",
   ],
   // メーカー名単体は使わない（「ｷﾔﾉﾝ ESET」誤分類防止）
-  "Canon MFP": [
+  // 実判定は大分類「複写機」。ここは補助用。
+  MFP: [
     "imageRUNNER", "iR-ADV", "iR ADV", "imageFORCE", "ImageFORCE", "複合機",
   ],
   "Canon プロダクト機": ["imagePRESS", "Image PRESS", "varioPRINT", "LBP"],

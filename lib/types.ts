@@ -4,6 +4,8 @@ export interface Genre {
   color: string;
 }
 
+export type CountMode = "line" | "unique_contract";
+
 export interface PriorityProduct {
   id: number;
   jan_code: string | null;
@@ -11,6 +13,8 @@ export interface PriorityProduct {
   genre_id: number;
   fiscal_year: number;
   match_patterns: string[];
+  /** line=受注行数(台数) / unique_contract=客先×商品ユニーク(月額) */
+  count_mode?: CountMode;
   genre?: Genre;
 }
 

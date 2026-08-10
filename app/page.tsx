@@ -7,6 +7,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { RankingTable } from "@/components/RankingTable";
 import { OrderDetailDrawer } from "@/components/OrderDetailDrawer";
 import { currentFiscalYear } from "@/lib/utils";
+import { countActual, resolveCountMode } from "@/lib/countActual";
 import type { Period } from "@/lib/utils";
 import type {
   PriorityProduct,
@@ -30,7 +31,13 @@ interface SummaryResponse {
   targets: Target[];
   orders: Pick<
     Order,
-    "category_key" | "department" | "person" | "customer_name" | "product_name" | "slip_date"
+    | "category_key"
+    | "department"
+    | "person"
+    | "customer_name"
+    | "product_name"
+    | "slip_date"
+    | "jan_code"
   >[];
 }
 
@@ -91,13 +98,16 @@ export default function DashboardPage() {
     return data?.departments.find((d) => d.name === department)?.id ?? -1;
   }, [department, data?.departments]);
 
-  // 商材サマリー計算（category_key でマッチング）
+  // 商材サマリー計算（count_mode に応じて台数 or 契約ユニーク）
   const productSummaries: ProductSummary[] = useMemo(
     () =>
       (data?.products ?? []).map((product) => {
-        const actual = (data?.orders ?? []).filter(
-          (o) => o.category_key === product.product_name
-        ).length;
+        const mode = resolveCountMode(product.product_name, product.count_mode);
+        const actual = countActual(
+          data?.orders ?? [],
+          product.product_name,
+          mode
+        );
 
         const target =
           department === COMPANY_DEPT

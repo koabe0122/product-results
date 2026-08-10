@@ -29,9 +29,8 @@ VALUES
    ARRAY['電子帳簿', '電子請求', 'インボイス', '受発注', 'BtoBプラットフォーム', '電子取引', 'Sansan', 'マネーフォワード']),
 
   -- ドキュメント
-  -- ※ Canon MFP CtoC と OEA は同キーワードのため初期は CtoC に統合
-  -- 　 将来的にCSVへ「施策名」列を追加して分離予定
-  (NULL, 'Canon MFP',
+  -- ※ MFP は取込時に大分類「複写機」で判定（series/ライセンス除外）
+  (NULL, 'MFP',
    (SELECT id FROM genres WHERE name='ドキュメント'), 2026,
    ARRAY['Canon', 'キヤノン', 'imageRUNNER', 'iR-ADV', 'iR ADV', 'MF7', 'MF8', 'MF6', 'MF5']),
 
@@ -159,8 +158,8 @@ BEGIN
   ON CONFLICT DO NOTHING;
 
   -- ===== ドキュメント =====
-  -- Canon MFP (CtoC + OEA統合 = 350)
-  SELECT id INTO pid FROM priority_products WHERE product_name='Canon MFP' AND fiscal_year=2026;
+  -- MFP (CtoC + OEA統合 = 350)
+  SELECT id INTO pid FROM priority_products WHERE product_name='MFP' AND fiscal_year=2026;
   INSERT INTO targets (product_id,department_id,fiscal_year,target_count) VALUES
     (pid,NULL,2026,350),(pid,dept_am1,2026,36),(pid,dept_am2,2026,46),
     (pid,dept_pub,2026,24),(pid,dept_off,2026,6),(pid,dept_mur,2026,46),
