@@ -28,11 +28,11 @@ VALUES
    (SELECT id FROM genres WHERE name='DX'), 2026,
    ARRAY['電子帳簿', '電子請求', 'インボイス', '受発注', 'BtoBプラットフォーム', '電子取引', 'Sansan', 'マネーフォワード']),
 
-  -- ドキュメント
   (NULL, 'Dコンサービス',
-   (SELECT id FROM genres WHERE name='ドキュメント'), 2026,
+   (SELECT id FROM genres WHERE name='DX'), 2026,
    ARRAY['Dコンサービス', 'Dコン', 'Dｺﾝｻｰﾋﾞｽ', 'Dｺﾝ', 'Ｄコンサービス', 'Ｄコン']),
 
+  -- ドキュメント
   -- ※ MFP は取込時に大分類「複写機」で判定（series/ライセンス除外）
   (NULL, 'MFP',
    (SELECT id FROM genres WHERE name='ドキュメント'), 2026,
@@ -161,13 +161,13 @@ BEGIN
     (pid,dept_tsuru,2026,3),(pid,dept_sc,2026,0)
   ON CONFLICT DO NOTHING;
 
-  -- ===== ドキュメント =====
   -- Dコンサービス
   SELECT id INTO pid FROM priority_products WHERE product_name='Dコンサービス' AND fiscal_year=2026;
   INSERT INTO targets (product_id,department_id,fiscal_year,target_count) VALUES
     (pid,NULL,2026,100)
   ON CONFLICT DO NOTHING;
 
+  -- ===== ドキュメント =====
   -- MFP (CtoC + OEA統合 = 350)
   SELECT id INTO pid FROM priority_products WHERE product_name='MFP' AND fiscal_year=2026;
   INSERT INTO targets (product_id,department_id,fiscal_year,target_count) VALUES

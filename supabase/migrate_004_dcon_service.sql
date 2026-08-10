@@ -7,7 +7,7 @@ INSERT INTO priority_products (jan_code, product_name, genre_id, fiscal_year, ma
 VALUES (
   NULL,
   'Dコンサービス',
-  (SELECT id FROM genres WHERE name = 'ドキュメント'),
+  (SELECT id FROM genres WHERE name = 'DX'),
   2026,
   ARRAY['Dコンサービス', 'Dコン', 'Dｺﾝｻｰﾋﾞｽ', 'Dｺﾝ', 'Ｄコンサービス', 'Ｄコン']
 )

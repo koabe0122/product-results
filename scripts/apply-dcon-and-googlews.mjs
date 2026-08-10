@@ -29,7 +29,7 @@ const MATCH = [
 const { data: genre, error: gErr } = await supabase
   .from("genres")
   .select("id")
-  .eq("name", "ドキュメント")
+  .eq("name", "DX")
   .single();
 if (gErr) throw gErr;
 
