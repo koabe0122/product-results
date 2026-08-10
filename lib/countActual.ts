@@ -48,21 +48,29 @@ function normalizeProductName(name: string): string {
     .toUpperCase();
 }
 
-function contractKey(o: OrderLike): string {
+/**
+ * 初回判定キー
+ * - unique_contract: 客先×施策（月額更新が別SKU扱いにならないよう施策単位）
+ * - line の毎月行: 客先×JAN（なければ正規化商品名）
+ */
+function contractKey(o: OrderLike, mode: CountMode): string {
+  if (mode === "unique_contract") {
+    return `${o.customer_name}||${o.category_key}`;
+  }
   const jan = (o.jan_code ?? "").trim();
   const product = normalizeProductName(o.product_name ?? "");
   return `${o.customer_name}||${jan || product}`;
 }
 
 /** 初回のみ残す（日付が古い順。同日は先勝ち） */
-function firstOccurrences(rows: OrderLike[]): OrderLike[] {
+function firstOccurrences(rows: OrderLike[], mode: CountMode): OrderLike[] {
   const sorted = [...rows].sort((a, b) =>
     (a.slip_date ?? "").localeCompare(b.slip_date ?? "")
   );
   const seen = new Set<string>();
   const out: OrderLike[] = [];
   for (const o of sorted) {
-    const key = contractKey(o);
+    const key = contractKey(o, mode);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(o);
@@ -89,12 +97,13 @@ export function filterOrdersForCounting(
   for (const [categoryKey, rows] of byCategory) {
     const mode = getMode(categoryKey);
     if (mode === "unique_contract") {
-      result.push(...firstOccurrences(rows));
+      result.push(...firstOccurrences(rows, "unique_contract"));
       continue;
     }
     const oneShot = rows.filter((o) => !isRecurringOrder(o.product_name ?? ""));
     const recurringFirst = firstOccurrences(
-      rows.filter((o) => isRecurringOrder(o.product_name ?? ""))
+      rows.filter((o) => isRecurringOrder(o.product_name ?? "")),
+      "line"
     );
     result.push(...oneShot, ...recurringFirst);
   }

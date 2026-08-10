@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { X, ChevronRight } from "lucide-react";
 import type { OrderDetail } from "@/lib/types";
 import type { Period } from "@/lib/utils";
+import {
+  filterOrdersForCounting,
+  resolveCountMode,
+} from "@/lib/countActual";
 
 interface OrderDetailDrawerProps {
   open: boolean;
@@ -58,6 +62,17 @@ export function OrderDetailDrawer({
       setLoading(false);
     }
   }, [open, categoryKey, person, department, period, fiscalYear]);
+
+  // カード実績と同じルール（月額・契約は客先初回のみ）で表示
+  const countedOrders = useMemo(() => {
+    const withKey = orders.map((o) => ({
+      ...o,
+      category_key: o.category_key || categoryKey || "",
+    }));
+    return filterOrdersForCounting(withKey, (key) => resolveCountMode(key));
+  }, [orders, categoryKey]);
+
+  const excluded = Math.max(0, orders.length - countedOrders.length);
 
   useEffect(() => {
     fetchOrders();
@@ -147,12 +162,17 @@ export function OrderDetailDrawer({
 
         <div className="border-b border-slate-100 bg-teal-50/60 px-5 py-3">
           <span className="text-sm text-slate-600">
-            合計{" "}
+            計上{" "}
             <span className="font-display text-2xl font-extrabold tabular-nums text-teal-700">
-              {orders.length}
+              {countedOrders.length}
             </span>{" "}
             件
           </span>
+          {excluded > 0 && (
+            <p className="mt-1 text-[11px] text-slate-500">
+              月次重複など {excluded} 件を除外（客先の初回のみ）
+            </p>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -170,13 +190,13 @@ export function OrderDetailDrawer({
                 再試行
               </button>
             </div>
-          ) : orders.length === 0 ? (
+          ) : countedOrders.length === 0 ? (
             <div className="flex items-center justify-center py-16 text-sm text-slate-400">
               データがありません
             </div>
           ) : (
             <ul className="divide-y divide-slate-100">
-              {orders.map((o, i) => (
+              {countedOrders.map((o, i) => (
                 <li
                   key={`${o.slip_date}-${o.customer_name}-${o.product_name}-${i}`}
                   className="px-5 py-3.5 transition-colors hover:bg-slate-50"

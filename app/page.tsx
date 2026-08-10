@@ -192,22 +192,6 @@ export default function DashboardPage() {
     [data?.products]
   );
 
-  const kpi = useMemo(() => {
-    const withTarget = productSummaries.filter((s) => s.target > 0);
-    const avgRate =
-      withTarget.length > 0
-        ? withTarget.reduce((s, p) => s + p.rate, 0) / withTarget.length
-        : 0;
-    const hit = withTarget.filter((s) => s.rate >= 100).length;
-    return {
-      productCount: productSummaries.length,
-      totalActual: productSummaries.reduce((s, p) => s + p.actual, 0),
-      avgRate,
-      hit,
-      withTarget: withTarget.length,
-    };
-  }, [productSummaries]);
-
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[var(--header)] text-[var(--header-ink)] shadow-lg shadow-slate-900/20">
@@ -235,62 +219,6 @@ export default function DashboardPage() {
           value={department}
           onChange={setDepartment}
         />
-
-        {!error && (
-          <section
-            aria-label="サマリー"
-            className="grid grid-cols-2 gap-3 lg:grid-cols-4"
-          >
-            {loading
-              ? [...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-[88px] animate-pulse rounded-2xl bg-white/70 ring-1 ring-slate-200/70"
-                  />
-                ))
-              : [
-                  {
-                    label: "商材数",
-                    value: String(kpi.productCount),
-                    unit: "品目",
-                  },
-                  {
-                    label: "合計実績",
-                    value: kpi.totalActual.toLocaleString("ja-JP"),
-                    unit: "件/台",
-                  },
-                  {
-                    label: "平均達成率",
-                    value:
-                      kpi.withTarget > 0 ? `${Math.round(kpi.avgRate)}` : "—",
-                    unit: kpi.withTarget > 0 ? "%" : "",
-                  },
-                  {
-                    label: "目標達成",
-                    value: `${kpi.hit}`,
-                    unit: `/ ${kpi.withTarget}`,
-                  },
-                ].map((item, i) => (
-                  <div
-                    key={item.label}
-                    className="animate-rise rounded-2xl bg-white/90 p-4 ring-1 ring-slate-200/80 shadow-[var(--shadow)]"
-                    style={{ animationDelay: `${i * 50}ms` }}
-                  >
-                    <div className="text-[11px] font-semibold tracking-wide text-slate-500">
-                      {item.label}
-                    </div>
-                    <div className="mt-1 font-display text-3xl font-extrabold tabular-nums tracking-tight text-slate-900">
-                      {item.value}
-                      {item.unit && (
-                        <span className="ml-1 text-sm font-semibold text-slate-400">
-                          {item.unit}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-          </section>
-        )}
 
         {error && (
           <div
