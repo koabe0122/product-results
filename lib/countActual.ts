@@ -16,6 +16,7 @@ const UNIQUE_CONTRACT_PRODUCTS = new Set([
   "SKYSEA",
   "AppCheck",
   "GoogleWS・M365",
+  "Dコンサービス",
   "AIツール100件受注",
   "勤怠管理拡販",
   "ノンコードツール拡販",
@@ -24,7 +25,7 @@ const UNIQUE_CONTRACT_PRODUCTS = new Set([
 
 /** 商品名から毎月計上・契約行かを判定 */
 export function isRecurringOrder(productName: string): boolean {
-  return /月額|利用料|ﾗｲｾﾝｽ|ライセンス|LICENSE|License|更新|年契約|年払い/i.test(
+  return /月額|利用料|ﾗｲｾﾝｽ|ライセンス|LICENSE|License|更新|年契約|年払い|追加/i.test(
     productName
   );
 }
@@ -37,9 +38,19 @@ export function resolveCountMode(
   return UNIQUE_CONTRACT_PRODUCTS.has(productName) ? "unique_contract" : "line";
 }
 
+/** 【更新】【NCE】等を除き、同一SKUとして比較できるようにする */
+function normalizeProductName(name: string): string {
+  return name
+    .replace(/【[^】]*】/g, "")
+    .replace(/[（(][^）)]*[）)]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
 function contractKey(o: OrderLike): string {
   const jan = (o.jan_code ?? "").trim();
-  const product = (o.product_name ?? "").trim();
+  const product = normalizeProductName(o.product_name ?? "");
   return `${o.customer_name}||${jan || product}`;
 }
 

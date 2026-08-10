@@ -192,6 +192,7 @@ function matchCategory(productName, categoryMap, majorCategory = "") {
     ESET: 100,
     SKYSEA: 100,
     AppCheck: 100,
+    "Dコンサービス": 95,
     Fortigate: 90,
     Barracuda: 90,
     SubGate: 90,

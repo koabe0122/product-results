@@ -26,6 +26,6 @@ WHERE product_name IN (
 
 UPDATE priority_products SET count_mode = 'unique_contract'
 WHERE product_name IN (
-  'ESET', 'SKYSEA', 'AppCheck', 'GoogleWS・M365',
+  'ESET', 'SKYSEA', 'AppCheck', 'GoogleWS・M365', 'Dコンサービス',
   'AIツール100件受注', '勤怠管理拡販', 'ノンコードツール拡販', '電子取引ツール'
 ) AND fiscal_year = 2026;
