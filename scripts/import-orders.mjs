@@ -256,22 +256,31 @@ async function main() {
     process.exit(1);
   }
 
-  let files;
+  let allFiles;
   try {
-    files = fs.readdirSync(CSV_FOLDER).filter((f) =>
-      f.toLowerCase().endsWith(".csv")
-    );
+    allFiles = fs.readdirSync(CSV_FOLDER);
   } catch (e) {
     log(`[ERROR] フォルダ読み込み失敗: ${CSV_FOLDER} - ${e.message}`);
     process.exit(1);
   }
 
-  if (files.length === 0) {
-    log("[INFO] 処理対象のCSVファイルが見つかりませんでした");
+  // 「重点商材進捗管理」を含む最新CSV 1ファイルのみ対象
+  const matched = allFiles.filter(
+    (f) => /重点商材進捗管理/i.test(f) && f.toLowerCase().endsWith(".csv")
+  );
+  if (matched.length === 0) {
+    log("[INFO] 処理対象のCSVファイルが見つかりませんでした（*重点商材進捗管理*.csv）");
     return;
   }
+  const latestFile = matched
+    .map((f) => ({
+      name: f,
+      mtime: fs.statSync(path.join(CSV_FOLDER, f)).mtimeMs,
+    }))
+    .sort((a, b) => b.mtime - a.mtime)[0].name;
 
-  log(`[INFO] 対象ファイル数: ${files.length}`);
+  const files = [latestFile];
+  log(`[INFO] 最新ファイル: ${latestFile}`);
 
   let totalInserted = 0;
   let totalSkipped = 0;
@@ -303,6 +312,9 @@ async function main() {
     const rawRows = validRecords.map((r) => {
       const productName = (r["商品名"] ?? "").trim();
       const majorCategory = (r["大分類"] || r["ジャンル"] || "").trim();
+      // F列: 売上数量 (バラ) または 受注数量 (台数)（列名が変わっても対応）
+      const qtyRaw = r["売上数量 (バラ)"] ?? r["受注数量 (台数)"] ?? "1";
+      const quantity = Math.max(1, parseInt(qtyRaw, 10) || 1);
       return {
         slip_date: r["伝票日付"].replace(/\//g, "-"),
         jan_code: String(r["商品コード"] ?? "").trim(),
@@ -310,6 +322,7 @@ async function main() {
         customer_name: (r["受注先 名称1"] ?? "").trim(),
         department: normalizeDepartment(r["部署"] ?? ""),
         person: (r["担当者名"] ?? "").trim(),
+        quantity,
         genre: majorCategory,
         category_key: matchCategory(productName, categoryMap, majorCategory),
       };
@@ -332,17 +345,31 @@ async function main() {
     const CHUNK = 200;
     let inserted = 0;
     let fileError = false;
+    let quantitySupported = true; // quantity 列がDBに存在するか（初回エラー時に false に）
+
     for (let i = 0; i < rows.length; i += CHUNK) {
       const chunk = rows.slice(i, i + CHUNK);
+
+      // quantity 列がまだ存在しない場合は除外してリトライ
+      const payload = quantitySupported ? chunk : chunk.map(({ quantity: _q, ...rest }) => rest);
+
       const { data, error } = await supabase
         .from("orders")
-        .upsert(chunk, {
+        .upsert(payload, {
           onConflict: "slip_date,jan_code,customer_name,person",
           ignoreDuplicates: false,
         })
         .select("id");
 
       if (error) {
+        // quantity 列未存在エラーなら列を除いて再試行
+        if (quantitySupported && /quantity/i.test(error.message)) {
+          log(`[WARN] quantity 列が未作成のため台数なしで取り込みます。`);
+          log(`[WARN]  → Supabase SQL Editor で migrate_006_quantity.sql を実行してください`);
+          quantitySupported = false;
+          i -= CHUNK; // このチャンクを再試行
+          continue;
+        }
         log(`[ERROR] DB書き込み失敗: ${file} (chunk ${i}-${i + chunk.length}) - ${error.message}`);
         totalErrors++;
         fileError = true;

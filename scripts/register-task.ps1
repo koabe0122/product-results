@@ -11,8 +11,7 @@ $action = New-ScheduledTaskAction `
   -Argument "scripts\import-orders.mjs" `
   -WorkingDirectory $ProjectDir
 
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-$trigger.Delay = "PT30S"
+$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At "07:00"
 
 $settings = New-ScheduledTaskSettingsSet `
   -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `

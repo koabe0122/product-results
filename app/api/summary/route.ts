@@ -51,13 +51,14 @@ export async function GET(request: NextRequest) {
     product_name: string;
     slip_date: string;
     jan_code: string;
+    quantity: number;
   };
 
   const { data: orders, error: ordersError } = await fetchAllRows<OrderRow>(() => {
     let query = supabase
       .from("orders")
       .select(
-        "category_key, department, person, customer_name, product_name, slip_date, jan_code"
+        "category_key, department, person, customer_name, product_name, slip_date, jan_code, quantity"
       )
       .gte("slip_date", from)
       .lte("slip_date", to)

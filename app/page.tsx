@@ -42,6 +42,7 @@ interface SummaryResponse {
     | "product_name"
     | "slip_date"
     | "jan_code"
+    | "quantity"
   >[];
 }
 

@@ -4,7 +4,7 @@ export interface Genre {
   color: string;
 }
 
-export type CountMode = "line" | "unique_contract";
+export type CountMode = "line" | "unique_contract" | "quantity_sum";
 
 export interface PriorityProduct {
   id: number;
@@ -44,6 +44,7 @@ export interface Order {
   person: string;
   genre: string;
   category_key: string;
+  quantity: number;
   imported_at: string;
 }
 
