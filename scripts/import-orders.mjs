@@ -159,15 +159,27 @@ function isExcludedFromMfp(productName) {
 }
 
 /**
+ * 大分類=複写機 だが MFP 以外の施策として判定すべき商品。
+ * - EPSON LM-C シリーズ → EPSON LX/LM
+ * - Canon imageFORCE C7xxx / imagePRESS → Canon プロダクト機
+ */
+function isMfpBypassProduct(productName) {
+  return /LM-C\d|imageFORCE\s*C7|imagePRESS/i.test(productName);
+}
+
+/**
  * 施策名を返す。
  * MFP は大分類「複写機」を正とし、series のみ除外。
+ * ただし EPSON LM-C / Canon プロダクト機 相当はパターン判定へフォールスルー。
  * ライセンス等の毎月行は MFP に入れ、集計側で初回のみ数える。
  * それ以外は最長パターン一致。
  */
 function matchCategory(productName, categoryMap, majorCategory = "") {
-  // 大分類「複写機」→ MFP（series 除外）
+  // 大分類「複写機」→ 原則 MFP（series 除外。LM-C / プロダクト機はパターン判定へ）
   if ((majorCategory ?? "").trim() === "複写機") {
-    return isExcludedFromMfp(productName) ? "" : "MFP";
+    if (isExcludedFromMfp(productName)) return "";
+    if (!isMfpBypassProduct(productName)) return "MFP";
+    // isMfpBypassProduct == true の場合はフォールスルーしてパターン判定
   }
 
   const upper = productName.toUpperCase();
@@ -201,6 +213,8 @@ function matchCategory(productName, categoryMap, majorCategory = "") {
     "AIツール100件受注": 70,
     "勤怠管理拡販": 70,
     "電子取引ツール": 70,
+    "介護ソフト": 65,
+    "見守りサービス": 65,
     "Canon プロダクト機": 50,
     "RISO RPS": 60,
     "RISO ORP": 60,
