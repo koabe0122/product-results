@@ -36,10 +36,10 @@ function Num({ n, children }: { n: number; children: string }) {
   );
 }
 
-function SectionTitle({ children }: { children: string }) {
+function SectionTitle({ n, children }: { n: string; children: string }) {
   return (
     <h2 className="text-base font-bold text-slate-800 border-l-4 border-teal-500 pl-3 mb-4">
-      {children}
+      {n} {children}
     </h2>
   );
 }
@@ -76,7 +76,7 @@ function Card({
   );
 }
 
-// ── AI-Driven Rules data ───────────────────────────────────────────────────────
+// ── AI-Driven Rules — 修正版（Rules 6・9 を具体化）─────────────────────────────
 
 const RULES: { n: number; rule: string; body: string }[] = [
   {
@@ -107,7 +107,7 @@ const RULES: { n: number; rule: string; body: string }[] = [
   {
     n: 6,
     rule: "AIが見る情報を整えろ",
-    body: "import-orders.mjs にコメントを整備し、CSV列名・DBスキーマ・matchCategory ロジックを明確に定義。AIとの協働を前提にコードを構造化した。",
+    body: "CSVのAI用フォーマット（列名・エンコード）を整備し、matchCategory() のロジックをコメントで明文化。「AIが読んでも意図がわかるコード」を意識して構造化した。",
   },
   {
     n: 7,
@@ -122,7 +122,7 @@ const RULES: { n: number; rule: string; body: string }[] = [
   {
     n: 9,
     rule: "スピードを出すな、対話しろ",
-    body: "「複写機は台数でカウント」「月額は重複除外」などの仕様を焦らず対話しながら確定。思い込みで作らず、確認→実装→確認のサイクルを回した。",
+    body: "「MFPは台数か件数か」「月額ライセンスは重複カウントするか」など仕様の細部を毎回確認してから実装。思い込みで作らず確認→実装→確認のサイクルを繰り返した。",
   },
   {
     n: 10,
@@ -162,7 +162,9 @@ export default function OverviewPage() {
 
         {/* ① 作ったもの */}
         <section>
-          <SectionTitle>① 作ったもの</SectionTitle>
+          <SectionTitle n="①">作ったもの</SectionTitle>
+          {/* 数値は2026年8月時点 */}
+          <p className="text-[11px] text-slate-400 mb-3">※ 数値は 2026年8月時点</p>
           <div className="grid grid-cols-3 gap-4 mb-5">
             {[
               { value: "22", label: "登録施策数" },
@@ -202,9 +204,29 @@ export default function OverviewPage() {
           </div>
         </section>
 
-        {/* ② 解決する面倒・課題 */}
+        {/* ② 作りたいと思った理由（UX指摘：動機を先に） */}
         <section>
-          <SectionTitle>② 解決する面倒・課題</SectionTitle>
+          <SectionTitle n="②">作りたいと思った理由</SectionTitle>
+          <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 space-y-3 text-sm text-slate-700 leading-relaxed">
+            <p>
+              営業会議のたびに「今月のMFPは何台？」「ESETは何件？」を確認するため、毎回Excelを開いてCSVを集計していた。集計自体に時間がかかるうえ、担当者によって計算ロジックがブレることもあり、
+              <strong className="text-slate-900">「誰が見ても同じ数字を見られる仕組み」</strong>
+              を作ることが目標になった。
+            </p>
+            <p>
+              また、重点施策ごとに集計ルール（台数・件数・初回のみ）が異なるという業務の複雑さをそのままシステムに落とし込むことで、
+              <strong className="text-slate-900">業務知識をコードとして残す</strong>
+              という意義も感じた。
+            </p>
+            <p>
+              WebアプリとしてVercelに公開することで、PCのExcelインストール環境に依存せず、スマートフォンやタブレットからも確認できる状態を目指した。
+            </p>
+          </div>
+        </section>
+
+        {/* ③ 解決する面倒・課題（UX指摘：理由の後に） */}
+        <section>
+          <SectionTitle n="③">解決する面倒・課題</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card title="取り込み前の状況" badge="Before">
               <ul className="space-y-2">
@@ -227,36 +249,25 @@ export default function OverviewPage() {
           </div>
         </section>
 
-        {/* ③ 作りたいと思った理由 */}
-        <section>
-          <SectionTitle>③ 作りたいと思った理由</SectionTitle>
-          <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 space-y-3 text-sm text-slate-700 leading-relaxed">
-            <p>
-              営業会議のたびに「今月のMFPは何台？」「ESETは何件？」を確認するため、毎回Excelを開いてCSVを集計していた。集計自体に時間がかかるうえ、担当者によって計算ロジックがブレることもあり、
-              <strong className="text-slate-900">「誰が見ても同じ数字を見られる仕組み」</strong>
-              を作ることが目標になった。
-            </p>
-            <p>
-              また、重点施策ごとに集計ルール（台数・件数・初回のみ）が異なるという業務の複雑さをそのままシステムに落とし込むことで、
-              <strong className="text-slate-900">業務知識をコードとして残す</strong>
-              という意義も感じた。
-            </p>
-            <p>
-              WebアプリとしてVercelに公開することで、PCのExcelインストール環境に依存せず、スマートフォンやタブレットからも確認できる状態を目指した。
-            </p>
-          </div>
-        </section>
-
         {/* ④ 工夫・苦戦 */}
         <section>
-          <SectionTitle>④ 工夫したポイントと苦戦したポイント</SectionTitle>
+          <SectionTitle n="④">工夫したポイントと苦戦したポイント</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-teal-700">工夫したポイント</h3>
               {[
-                { title: "施策マッチングロジック", body: "商品名のパターンマッチで施策を自動判定。最長マッチ優先＋施策別優先度スコア（PRIORITY マップ）を組み合わせ、曖昧な商品名でも正確に分類できる仕組みを設計した。" },
-                { title: "3種類の集計モード", body: "line（行数カウント）/ unique_contract（客先×施策の初回のみ）/ quantity_sum（売上数量積算）の3モードをコードで管理し、施策ごとに自動切り替え。" },
-                { title: "MFPバイパス判定", body: "大分類「複写機」でも EPSON LM-C / Canon imageFORCE C7 は別施策扱いにする例外ロジック（isMfpBypassProduct）を追加。ハード例外をコードで明示した。" },
+                {
+                  title: "施策マッチングロジック",
+                  body: "商品名のパターンマッチで施策を自動判定。最長マッチ優先＋施策別優先度スコア（PRIORITY マップ）を組み合わせ、曖昧な商品名でも正確に分類できる仕組みを設計した。",
+                },
+                {
+                  title: "3種類の集計モード",
+                  body: "line（行数カウント）/ unique_contract（客先×施策の初回のみ）/ quantity_sum（売上数量積算）の3モードをコードで管理し、施策ごとに自動切り替え。",
+                },
+                {
+                  title: "MFPバイパス判定",
+                  body: "大分類「複写機」でも EPSON LM-C / Canon imageFORCE C7 は別施策扱いにする例外ロジック（isMfpBypassProduct）を追加。ハード例外をコードで明示した。",
+                },
               ].map((c) => (
                 <div key={c.title} className="rounded-xl border border-teal-100 bg-teal-50 px-4 py-3">
                   <p className="text-xs font-bold text-teal-800 mb-1">{c.title}</p>
@@ -267,9 +278,19 @@ export default function OverviewPage() {
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-red-600">苦戦したポイント</h3>
               {[
-                { title: "DBスキーマ変更の壁", body: "PostgreSQL の ALTER TABLE は Supabase REST API 経由では実行不可。quantity 列追加のためだけに SQL Editor での手動実行が必要で、インポートスクリプトにフォールバック処理を追加して対応した。" },
-                { title: "Shift-JIS CSVのエンコード", body: "ネットワーク共有のCSVが Shift-JIS エンコードで PowerShell での文字化けが続いた。iconv-lite（Node.js）を使いプロジェクトディレクトリから実行することで解決した。" },
-                { title: "フォルダ一覧が取れない共有アクセス", body: "\\\\192.168.0.2 の共有フォルダは Get-ChildItem ではリスト取得できないが直接パスは成功する挙動。一時フォルダへのコピー経由で動作させることで回避した。" },
+                {
+                  title: "DBスキーマ変更の壁",
+                  body: "PostgreSQL の ALTER TABLE は Supabase REST API 経由では実行不可。quantity 列追加のためだけに SQL Editor での手動実行が必要で、インポートスクリプトにフォールバック処理を追加して対応した。",
+                },
+                {
+                  title: "Shift-JIS CSVのエンコード",
+                  body: "ネットワーク共有のCSVが Shift-JIS エンコードで PowerShell での文字化けが続いた。iconv-lite（Node.js）を使いプロジェクトディレクトリから実行することで解決した。",
+                },
+                {
+                  // 技術レビュー指摘：一時フォルダ経由の記述を現行コードに合わせて修正
+                  title: "ネットワーク共有へのアクセス方法の調査",
+                  body: "PowerShell では Get-ChildItem でのフォルダ一覧取得が失敗するケースがあった。調査の結果、Node.js の fs.readdirSync で直接アクセスする方式に統一することで安定動作を実現した。",
+                },
               ].map((c) => (
                 <div key={c.title} className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
                   <p className="text-xs font-bold text-red-700 mb-1">{c.title}</p>
@@ -289,9 +310,10 @@ export default function OverviewPage() {
 
         {/* ⑤ AI-Driven Rules との対応 */}
         <section>
-          <SectionTitle>⑤ AI-Driven Rules との対応</SectionTitle>
+          <SectionTitle n="⑤">AI-Driven Rules との対応</SectionTitle>
+          {/* UX指摘：Rules の前提説明を追加 */}
           <p className="text-xs text-slate-500 mb-4">
-            開発を通じて体現した10のルール（AI活用時代の行動指針）
+            AI活用時代の行動指針10か条（AI-Driven Rules）と、本プロジェクトでの体現内容の対応表。
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {RULES.map(({ n, rule, body }) => (
