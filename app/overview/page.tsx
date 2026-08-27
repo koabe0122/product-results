@@ -5,15 +5,7 @@ export const metadata: Metadata = {
   description: "営業施策の受注実績を自動集計・可視化するWebダッシュボードの制作概要",
 };
 
-// ── small helpers ──────────────────────────────────────────────────────────────
-
-function Tag({ children }: { children: string }) {
-  return (
-    <span className="inline-block text-[11px] font-semibold tracking-wide px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-      {children}
-    </span>
-  );
-}
+// ── helpers ────────────────────────────────────────────────────────────────────
 
 function Check({ children }: { children: string }) {
   return (
@@ -84,6 +76,61 @@ function Card({
   );
 }
 
+// ── AI-Driven Rules data ───────────────────────────────────────────────────────
+
+const RULES: { n: number; rule: string; body: string }[] = [
+  {
+    n: 1,
+    rule: "90点→100点の戦いに備えよ",
+    body: "「動く」だけでなく「正確に集計できる」ことにこだわった。MFP台数カウント・月額ライセンスの重複排除・パターンマッチ精度向上を繰り返し、精度90点→100点を追求した。",
+  },
+  {
+    n: 2,
+    rule: "理解できないものを作るな",
+    body: "自社の営業データと集計ルールを熟知した上で設計。理解が曖昧な仕様（台数 vs 件数など）はその都度確認・対話してからコードに落とした。",
+  },
+  {
+    n: 3,
+    rule: "自分の武器を自分で作れ",
+    body: "市販BI/Excelマクロではなく、自社業務に特化したダッシュボードをゼロから構築。施策分類ロジック・集計モードすべてが自作の「業務専用武器」。",
+  },
+  {
+    n: 4,
+    rule: "図解で認知コストを下げろ",
+    body: "施策カード・進捗バー・部門タブ・担当者ランキングで複雑な集計結果を直感的に把握できるUIを設計。この概要ページ自体も図解として作成した。",
+  },
+  {
+    n: 5,
+    rule: "議論する前にプロトタイプを作れ",
+    body: "まずCSV取込スクリプトを作って動くものを見せた。集計ルールの細部（MFP台数、ライセンス重複）は動作確認しながら週次で要件を固めた。",
+  },
+  {
+    n: 6,
+    rule: "AIが見る情報を整えろ",
+    body: "import-orders.mjs にコメントを整備し、CSV列名・DBスキーマ・matchCategory ロジックを明確に定義。AIとの協働を前提にコードを構造化した。",
+  },
+  {
+    n: 7,
+    rule: "スキルを育て続けろ",
+    body: "Next.js 16 / Supabase / TypeScript / PostgreSQL / Windows Task Scheduler を実務を通じて習得。Shift-JIS解析・PostgREST制約など想定外の技術課題も都度乗り越えた。",
+  },
+  {
+    n: 8,
+    rule: "抽象指示より模範解答を作れ",
+    body: "matchCategory() / countActual() / filterOrdersForCounting() など、集計ルールを「模範実装」としてコードに明示。抽象的な要件を動く実装に落とし切った。",
+  },
+  {
+    n: 9,
+    rule: "スピードを出すな、対話しろ",
+    body: "「複写機は台数でカウント」「月額は重複除外」などの仕様を焦らず対話しながら確定。思い込みで作らず、確認→実装→確認のサイクルを回した。",
+  },
+  {
+    n: 10,
+    rule: "1クリックを減らせ",
+    body: "URLを開くだけで最新データが表示される。部門切替・期間フィルターはタブ/ボタン一発で完結。CSVインポートも週次自動実行で手動操作をゼロにした。",
+  },
+];
+
 // ── page ───────────────────────────────────────────────────────────────────────
 
 export default function OverviewPage() {
@@ -102,18 +149,8 @@ export default function OverviewPage() {
             営業施策の受注実績を自動集計・可視化するWebダッシュボード
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
-            {[
-              "Next.js 16",
-              "Supabase",
-              "Vercel",
-              "TypeScript",
-              "PostgreSQL",
-              "Task Scheduler",
-            ].map((t) => (
-              <span
-                key={t}
-                className="text-[11px] font-semibold px-2 py-0.5 rounded bg-white/10 text-slate-300"
-              >
+            {["Next.js 16","Supabase","Vercel","TypeScript","PostgreSQL","Task Scheduler"].map((t) => (
+              <span key={t} className="text-[11px] font-semibold px-2 py-0.5 rounded bg-white/10 text-slate-300">
                 {t}
               </span>
             ))}
@@ -126,24 +163,18 @@ export default function OverviewPage() {
         {/* ① 作ったもの */}
         <section>
           <SectionTitle>① 作ったもの</SectionTitle>
-
-          {/* stats */}
           <div className="grid grid-cols-3 gap-4 mb-5">
             {[
               { value: "22", label: "登録施策数" },
               { value: "1,267", label: "取込済み受注件数" },
               { value: "13", label: "対象部門数" },
             ].map((s) => (
-              <div
-                key={s.label}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center"
-              >
+              <div key={s.label} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center">
                 <p className="text-2xl font-extrabold text-teal-600">{s.value}</p>
                 <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card title="画面構成">
               <ul className="space-y-2">
@@ -154,29 +185,15 @@ export default function OverviewPage() {
               </ul>
             </Card>
             <Card title="システム構成">
-              <dl className="space-y-2.5 text-sm">
+              <dl className="space-y-2.5">
                 {[
-                  {
-                    dt: "CSV取込",
-                    dd: "ネットワーク共有から最新の「YYYYMMDD-重点商材進捗管理.csv」を自動検出・Shift-JIS解析",
-                  },
-                  {
-                    dt: "DB",
-                    dd: "Supabase (PostgreSQL) — orders / priority_products / targets テーブル",
-                  },
-                  {
-                    dt: "スケジュール",
-                    dd: "Windows タスクスケジューラで毎週月曜 7:00 に自動実行",
-                  },
-                  {
-                    dt: "公開",
-                    dd: "Vercel — GitHub push で自動デプロイ",
-                  },
+                  { dt: "CSV取込", dd: "ネットワーク共有から最新の「YYYYMMDD-重点商材進捗管理.csv」を自動検出・Shift-JIS解析" },
+                  { dt: "DB", dd: "Supabase (PostgreSQL) — orders / priority_products / targets テーブル" },
+                  { dt: "スケジュール", dd: "Windows タスクスケジューラで毎週月曜 7:00 に自動実行" },
+                  { dt: "公開", dd: "Vercel — GitHub push で自動デプロイ" },
                 ].map((row) => (
                   <div key={row.dt} className="flex gap-2">
-                    <dt className="shrink-0 w-24 font-semibold text-slate-600 text-xs pt-0.5">
-                      {row.dt}
-                    </dt>
+                    <dt className="shrink-0 w-24 font-semibold text-slate-600 text-xs pt-0.5">{row.dt}</dt>
                     <dd className="text-slate-600 text-xs">{row.dd}</dd>
                   </div>
                 ))}
@@ -234,22 +251,12 @@ export default function OverviewPage() {
         <section>
           <SectionTitle>④ 工夫したポイントと苦戦したポイント</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* 工夫 */}
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-teal-700">工夫したポイント</h3>
               {[
-                {
-                  title: "施策マッチングロジック",
-                  body: "商品名のパターンマッチで施策を自動判定。最長マッチ優先＋施策別優先度スコア（PRIORITY マップ）を組み合わせ、曖昧な商品名でも正確に分類できる仕組みを設計した。",
-                },
-                {
-                  title: "3種類の集計モード",
-                  body: "line（行数カウント）/ unique_contract（客先×施策の初回のみ）/ quantity_sum（売上数量積算）の3モードをコードで管理し、施策ごとに自動切り替え。",
-                },
-                {
-                  title: "MFPバイパス判定",
-                  body: "大分類「複写機」でも EPSON LM-C / Canon imageFORCE C7 は別施策扱いにする例外ロジック（isMfpBypassProduct）を追加。ハード例外をコードで明示した。",
-                },
+                { title: "施策マッチングロジック", body: "商品名のパターンマッチで施策を自動判定。最長マッチ優先＋施策別優先度スコア（PRIORITY マップ）を組み合わせ、曖昧な商品名でも正確に分類できる仕組みを設計した。" },
+                { title: "3種類の集計モード", body: "line（行数カウント）/ unique_contract（客先×施策の初回のみ）/ quantity_sum（売上数量積算）の3モードをコードで管理し、施策ごとに自動切り替え。" },
+                { title: "MFPバイパス判定", body: "大分類「複写機」でも EPSON LM-C / Canon imageFORCE C7 は別施策扱いにする例外ロジック（isMfpBypassProduct）を追加。ハード例外をコードで明示した。" },
               ].map((c) => (
                 <div key={c.title} className="rounded-xl border border-teal-100 bg-teal-50 px-4 py-3">
                   <p className="text-xs font-bold text-teal-800 mb-1">{c.title}</p>
@@ -257,23 +264,12 @@ export default function OverviewPage() {
                 </div>
               ))}
             </div>
-
-            {/* 苦戦 */}
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-red-600">苦戦したポイント</h3>
               {[
-                {
-                  title: "DBスキーマ変更の壁",
-                  body: "PostgreSQL の ALTER TABLE は Supabase REST API 経由では実行不可。quantity 列追加のためだけに SQL Editor での手動実行が必要で、インポートスクリプトにフォールバック処理を追加して対応した。",
-                },
-                {
-                  title: "Shift-JIS CSVのエンコード",
-                  body: "ネットワーク共有のCSVが Shift-JIS エンコードで PowerShell での文字化けが続いた。iconv-lite（Node.js）を使いプロジェクトディレクトリから実行することで解決した。",
-                },
-                {
-                  title: "フォルダ一覧が取れない共有アクセス",
-                  body: "\\\\192.168.0.2 の共有フォルダは Get-ChildItem ではリスト取得できないが直接パスは成功する挙動。一時フォルダへのコピー経由で動作させることで回避した。",
-                },
+                { title: "DBスキーマ変更の壁", body: "PostgreSQL の ALTER TABLE は Supabase REST API 経由では実行不可。quantity 列追加のためだけに SQL Editor での手動実行が必要で、インポートスクリプトにフォールバック処理を追加して対応した。" },
+                { title: "Shift-JIS CSVのエンコード", body: "ネットワーク共有のCSVが Shift-JIS エンコードで PowerShell での文字化けが続いた。iconv-lite（Node.js）を使いプロジェクトディレクトリから実行することで解決した。" },
+                { title: "フォルダ一覧が取れない共有アクセス", body: "\\\\192.168.0.2 の共有フォルダは Get-ChildItem ではリスト取得できないが直接パスは成功する挙動。一時フォルダへのコピー経由で動作させることで回避した。" },
               ].map((c) => (
                 <div key={c.title} className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
                   <p className="text-xs font-bold text-red-700 mb-1">{c.title}</p>
@@ -282,8 +278,6 @@ export default function OverviewPage() {
               ))}
             </div>
           </div>
-
-          {/* まとめ */}
           <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-5 py-3">
             <p className="text-xs font-bold text-blue-800 mb-1">全体を通じた学び</p>
             <p className="text-xs text-slate-700 leading-relaxed">
@@ -293,17 +287,27 @@ export default function OverviewPage() {
           </div>
         </section>
 
-        {/* footer */}
-        <footer className="border-t border-slate-200 pt-4 text-center">
-          <a
-            href="https://product-results.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-teal-600 font-semibold hover:underline"
-          >
-            ダッシュボードを開く →
-          </a>
-        </footer>
+        {/* ⑤ AI-Driven Rules との対応 */}
+        <section>
+          <SectionTitle>⑤ AI-Driven Rules との対応</SectionTitle>
+          <p className="text-xs text-slate-500 mb-4">
+            開発を通じて体現した10のルール（AI活用時代の行動指針）
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {RULES.map(({ n, rule, body }) => (
+              <div key={n} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-slate-800 text-white text-[10px] font-bold flex items-center justify-center">
+                    {n}
+                  </span>
+                  <p className="text-xs font-bold text-slate-800">{rule}</p>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed pl-7">{body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
       </main>
     </div>
   );
