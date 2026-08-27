@@ -158,6 +158,21 @@ export default function OverviewPage() {
         </div>
       </header>
 
+      {/* ダッシュボード本体スクリーンショット */}
+      <div className="bg-slate-100 border-b border-slate-200 px-6 py-4">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">
+            Dashboard Screenshot
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/screenshot.png"
+            alt="重点商材ダッシュボード 画面キャプチャ"
+            className="w-full rounded-xl border border-slate-200"
+          />
+        </div>
+      </div>
+
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-10">
 
         {/* ① 作ったもの */}
